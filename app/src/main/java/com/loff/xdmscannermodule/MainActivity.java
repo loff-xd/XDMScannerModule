@@ -3,11 +3,8 @@ package com.loff.xdmscannermodule;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.content.Intent;
 import android.media.AudioManager;
-import android.media.MediaPlayer;
 import android.media.SoundPool;
-import android.media.ToneGenerator;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Toast;
@@ -51,7 +48,9 @@ public class MainActivity extends AppCompatActivity {
 
         // BEEP
         sp = new SoundPool(5, AudioManager.STREAM_MUSIC, 0);
-        int soundID = sp.load(this, R.raw.genericbeep, 1);
+        int soundIDbeep = sp.load(this, R.raw.genericbeep, 1);
+        int soundIDwarn = sp.load(this, R.raw.warnbeep, 1);
+        int soundIDerror = sp.load(this, R.raw.errorbeep, 1);
 
         // CODE SCANNER
         scannerView = findViewById(R.id.codeScanner);
@@ -59,11 +58,11 @@ public class MainActivity extends AppCompatActivity {
         codeScanner.setDecodeCallback(new DecodeCallback() {
             @Override
             public void onDecoded(@NonNull Result result) {
-                sp.play(soundID, 1, 1, 0,0,1);
+                sp.play(soundIDbeep, 1, 1, 0,0,1);
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(MainActivity.this, result.getText(), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, result.getText(), Toast.LENGTH_SHORT).show(); // SCANNED CODE HERE TODO
                         closeCameraInterface();
                     }
                 });
