@@ -1,15 +1,15 @@
 package com.loff.xdmscannermodule;
-import android.media.MediaCodec;
 import android.os.Environment;
-import android.util.Log;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -22,8 +22,8 @@ public class Backend {
     public static class SSCC{
         String ssccID;
         Boolean scanned = false;
-        Boolean surplus = false;
-        String description;
+        Boolean unknown = false;
+        String description = "";
         Boolean highRisk = false;
     }
 
@@ -36,22 +36,29 @@ public class Backend {
     public void exportJson(XDManifest xdManifest){
         try {
             JSONObject json_out = new JSONObject();
-            json_out.put("ManifestID", xdManifest.manifestID);
+
+            JSONObject json_manifest = new JSONObject();
+            json_manifest.put("Manifest ID", xdManifest.manifestID);
 
             JSONArray json_sscc_array = new JSONArray();
 
             for (int i = 0; i < xdManifest.ssccList.size(); i++){
                 json_sscc_array.put(new JSONObject()
-                .put("ssccID", xdManifest.ssccList.get(i).ssccID)
-                .put("scanned", xdManifest.ssccList.get(i).scanned)
-                .put("surplus", xdManifest.ssccList.get(i).surplus)
-                .put("description", xdManifest.ssccList.get(i).description)
+                .put("SSCC", xdManifest.ssccList.get(i).ssccID)
+                .put("Scanned", xdManifest.ssccList.get(i).scanned)
+                .put("Unknown", xdManifest.ssccList.get(i).unknown)
+                .put("Description", xdManifest.ssccList.get(i).description)
                 );
             }
 
-            json_out.put("SSCCs", json_sscc_array);
+            json_manifest.put("SSCCs", json_sscc_array);
+            json_out.put("Manifest", json_manifest);
 
-        } catch (JSONException e){
+            Writer writer = new BufferedWriter(new FileWriter(xdtMobileJsonFile));
+            writer.write(json_out.toString());
+            writer.close();
+
+        } catch (Exception e){
             System.out.println(Arrays.toString(e.getStackTrace()));
         }
     }

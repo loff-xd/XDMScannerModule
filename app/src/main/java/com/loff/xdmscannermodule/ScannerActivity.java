@@ -64,9 +64,18 @@ public class ScannerActivity extends AppCompatActivity {
         }));
 
         // CREATE DATA LIST
-        ssccCards = new ArrayList<SSCCCard>(); //TODO POPULATE
-        ssccCards.add(new SSCCCard(R.drawable.ic_unknown, "40935803498533345", "1 Item", true));
-        ssccCards.add(new SSCCCard(R.drawable.ic_scanned, "04983579438759438", "5 Items", false));
+        ssccCards = new ArrayList<>();
+        for (int i=0; i < xbackend.xdManifest.ssccList.size(); i++){
+            int drawImage;
+            if (xbackend.xdManifest.ssccList.get(i).unknown) {
+                drawImage = R.drawable.ic_unknown;
+            } else if (xbackend.xdManifest.ssccList.get(i).scanned) {
+                drawImage = R.drawable.ic_scanned;
+            } else {
+                drawImage = R.drawable.ic_unscanned;
+            }
+            ssccCards.add(new SSCCCard(drawImage, xbackend.xdManifest.ssccList.get(i).ssccID, xbackend.xdManifest.ssccList.get(i).description, xbackend.xdManifest.ssccList.get(i).highRisk));
+        }
 
         recyclerView = findViewById(R.id.rcv_data_container);
         recyclerView.setHasFixedSize(true);
@@ -118,7 +127,19 @@ public class ScannerActivity extends AppCompatActivity {
     }
 
     private void checkBarcode(String barcode) {
-        System.out.println(barcode);
-        soundIDbeep.start();
+        for (int i=0; i < xbackend.xdManifest.ssccList.size(); i++) {
+            if (xbackend.xdManifest.ssccList.get(i).ssccID.equals(barcode)) {
+                if (xbackend.xdManifest.ssccList.get(i).highRisk) {
+                    soundIDwarn.start();
+                } else {
+                    soundIDbeep.start();
+                }
+                xbackend.xdManifest.ssccList.get(i).scanned = true;
+                // TODO CALL CARD REFRESH
+            } else {
+                soundIDerror.start();
+                // TODO PROMPT NEW CARD
+            }
+        }
     }
 }
