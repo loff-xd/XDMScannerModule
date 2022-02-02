@@ -4,37 +4,33 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    tools:context=".ScannerActivity">
 
-    <LinearLayout
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rcv_data_container"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:padding="4dp"
+        tools:layout_editor_absoluteX="1dp"
+        tools:layout_editor_absoluteY="1dp" />
 
-        <com.budiyev.android.codescanner.CodeScannerView
-            android:id="@+id/codeScanner"
-            android:layout_width="match_parent"
-            android:layout_height="220dp"
-            android:visibility="gone"
-            app:autoFocusButtonColor="@android:color/white"
-            app:autoFocusButtonVisible="true"
-            app:flashButtonColor="@android:color/white"
-            app:flashButtonVisible="true"
-            app:frameAspectRatioHeight="1"
-            app:frameAspectRatioWidth="3"
-            app:frameColor="@android:color/white"
-            app:frameCornersRadius="6dp"
-            app:frameCornersSize="32dp"
-            app:frameSize="0.9">
+    <com.budiyev.android.codescanner.CodeScannerView
+        android:id="@+id/codeScanner"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"
+        app:autoFocusButtonColor="@android:color/white"
+        app:autoFocusButtonVisible="true"
+        app:flashButtonColor="@android:color/white"
+        app:flashButtonVisible="true"
+        app:frameAspectRatioHeight="1"
+        app:frameAspectRatioWidth="3"
+        app:frameColor="@android:color/white"
+        app:frameCornersRadius="6dp"
+        app:frameCornersSize="32dp"
+        app:frameSize="0.9">
 
-        </com.budiyev.android.codescanner.CodeScannerView>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical" />
-
-    </LinearLayout>
+    </com.budiyev.android.codescanner.CodeScannerView>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabScan"
@@ -49,7 +45,7 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@android:drawable/ic_menu_add"
+        app:srcCompat="@android:drawable/ic_menu_camera"
         tools:ignore="SpeakableTextPresentCheck,ImageContrastCheck" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton

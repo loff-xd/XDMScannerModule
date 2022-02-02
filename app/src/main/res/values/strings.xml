@@ -1,8 +1,10 @@
 <resources>
     <string name="app_name">XDMScannerModule</string>
     <string name="action_settings">Settings</string>
-    
-    <string name="title_activity_main">MainActivity</string>
+
     <string name="title_activity_camera_interface">CameraInterface</string>
     <string name="scan_barcode">Scan Barcode</string>
+    <string name="begin_scanning">Begin Scanning</string>
+    <string name="lastfour_placeholder">0000</string>
+    <string name="jsonImportError">Failed to import JSON file, it may be missing or corrupt.</string>
 </resources>
