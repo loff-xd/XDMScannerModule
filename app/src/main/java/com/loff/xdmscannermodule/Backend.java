@@ -105,10 +105,6 @@ public class Backend {
         }
     }
 
-    public void writeFile(){
-
-    }
-
     public boolean fsCheck(){
         if (!xdtMobileFolder.exists()){
             return xdtMobileFolder.mkdirs();

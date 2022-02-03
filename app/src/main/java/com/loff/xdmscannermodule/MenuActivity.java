@@ -44,12 +44,11 @@ public class MenuActivity extends AppCompatActivity {
 
         // POPULATE TEXT FIELD
         if (xbackend.importJson()) {
-            StringBuilder sb = new StringBuilder();
-            sb.append("Target Manifest: ");
-            sb.append(xbackend.xdManifest.manifestID);
-            sb.append("\n\nSSCCs: ");
-            sb.append(xbackend.xdManifest.ssccList.size());
-            txtStatusText.setText(sb.toString());  //TODO
+            String sb = "Target Manifest: " +
+                    xbackend.xdManifest.manifestID +
+                    "\n\nSSCCs: " +
+                    xbackend.xdManifest.ssccList.size();
+            txtStatusText.setText(sb);  //TODO more details needed here
         } else {
             txtStatusText.setText(R.string.jsonImportError);
         }

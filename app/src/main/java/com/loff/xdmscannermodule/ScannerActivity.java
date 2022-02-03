@@ -10,7 +10,9 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
+import android.widget.Toast;
 
 import com.budiyev.android.codescanner.CodeScanner;
 import com.budiyev.android.codescanner.CodeScannerView;
@@ -127,19 +129,32 @@ public class ScannerActivity extends AppCompatActivity {
     }
 
     private void checkBarcode(String barcode) {
+        Log.e("XDM", barcode);
+        boolean matchFound = false;
         for (int i=0; i < xbackend.xdManifest.ssccList.size(); i++) {
-            if (xbackend.xdManifest.ssccList.get(i).ssccID.equals(barcode)) {
+            if (xbackend.xdManifest.ssccList.get(i).ssccID.contains(barcode)) {
+                Log.e("XDM", xbackend.xdManifest.ssccList.get(i).ssccID);
                 if (xbackend.xdManifest.ssccList.get(i).highRisk) {
                     soundIDwarn.start();
                 } else {
                     soundIDbeep.start();
                 }
                 xbackend.xdManifest.ssccList.get(i).scanned = true;
+                matchFound = true;
                 // TODO CALL CARD REFRESH
-            } else {
-                soundIDerror.start();
-                // TODO PROMPT NEW CARD
+
+                break;
             }
         }
+
+        if (!matchFound){
+            soundIDerror.start();
+            // TODO PROMPT NEW CARD
+        }
+
+    }
+
+    private void doCardRefresh(){
+
     }
 }
