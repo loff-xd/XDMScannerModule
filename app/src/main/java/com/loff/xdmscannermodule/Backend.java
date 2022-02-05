@@ -1,5 +1,4 @@
 package com.loff.xdmscannermodule;
-import android.os.Environment;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -14,12 +13,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class Backend {
+    public static XDManifest xdManifest;
+    public static File xdtMobileJsonFile = null;
 
-    public XDManifest xdManifest;
-    public static File xdtMobileFolder = new File(Environment.getExternalStorageDirectory(), "XDTMobile");
-    public static File xdtMobileJsonFile = new File(xdtMobileFolder, "xdt_mobile.json");
-
-    public static class SSCC{
+    public static class SSCC {
         String ssccID;
         Boolean scanned = false;
         Boolean unknown = false;
@@ -30,15 +27,16 @@ public class Backend {
     public static class XDManifest {
         String manifestID;
         String manifestDate;
-        ArrayList<SSCC> ssccList = new ArrayList<SSCC>();
+        ArrayList<SSCC> ssccList = new ArrayList<>();
     }
 
-    public void exportJson(XDManifest xdManifest){
+    public static void exportJson(){
         try {
             JSONObject json_out = new JSONObject();
 
             JSONObject json_manifest = new JSONObject();
             json_manifest.put("Manifest ID", xdManifest.manifestID);
+            json_manifest.put("Import Date", xdManifest.manifestDate);
 
             JSONArray json_sscc_array = new JSONArray();
 
@@ -47,7 +45,7 @@ public class Backend {
                 .put("SSCC", xdManifest.ssccList.get(i).ssccID)
                 .put("Scanned", xdManifest.ssccList.get(i).scanned)
                 .put("Unknown", xdManifest.ssccList.get(i).unknown)
-                .put("Description", xdManifest.ssccList.get(i).description)
+                .put("is_HR", xdManifest.ssccList.get(i).highRisk)
                 );
             }
 
@@ -63,7 +61,7 @@ public class Backend {
         }
     }
 
-    public boolean importJson(){
+    public static boolean importJson(){
         if (fsCheck()) {
             StringBuilder json_str_in = new StringBuilder();
             try {
@@ -75,6 +73,7 @@ public class Backend {
                 }
 
                 String result = json_str_in.toString();
+                xdManifest = null;
                 xdManifest = new XDManifest();
 
                 JSONObject Jmanifest = new JSONObject(result).getJSONObject("Manifest");
@@ -87,7 +86,13 @@ public class Backend {
                     JSONObject jSSCC = jSSCCs.getJSONObject(i);
                     newSSCC.ssccID = jSSCC.getString("SSCC");
                     newSSCC.highRisk = jSSCC.getBoolean("is_HR");
-                    newSSCC.description = jSSCC.getJSONArray("Articles").length() + " Lines";
+
+                    // newSSCC.description = jSSCC.getString("Description");
+
+
+
+                    if (jSSCC.has("Scanned")) { newSSCC.scanned = jSSCC.getBoolean("Scanned"); }
+                    if (jSSCC.has("Unknown")) { newSSCC.unknown = jSSCC.getBoolean("Unknown"); }
                     xdManifest.ssccList.add(newSSCC);
                 }
 
@@ -105,12 +110,11 @@ public class Backend {
         }
     }
 
-    public boolean fsCheck(){
-        if (!xdtMobileFolder.exists()){
-            return xdtMobileFolder.mkdirs();
-        } else {
+    public static boolean fsCheck(){
+        if (xdtMobileJsonFile != null) {
             return xdtMobileJsonFile.exists();
-
+        } else {
+            return false;
         }
     }
 

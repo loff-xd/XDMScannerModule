@@ -3,22 +3,22 @@ package com.loff.xdmscannermodule;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
-import android.widget.Toast;
+import android.widget.Button;
+import android.widget.TextView;
 
 import com.budiyev.android.codescanner.CodeScanner;
 import com.budiyev.android.codescanner.CodeScannerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
-import java.util.ArrayList;
+import java.io.File;
+
 
 public class ScannerActivity extends AppCompatActivity {
 
@@ -27,12 +27,8 @@ public class ScannerActivity extends AppCompatActivity {
     private CodeScannerView scannerView;
     private CodeScanner codeScanner;
 
-    private RecyclerView recyclerView;
-    private RecyclerView.Adapter RVadapter;
-    private RecyclerView.LayoutManager RVlayoutManager;
-
-    Backend xbackend = MenuActivity.xbackend;
-    ArrayList<SSCCCard> ssccCards;
+    private TextView dataList;
+    private TextView statusText;
 
     // BEEP
     MediaPlayer soundIDbeep;
@@ -43,6 +39,8 @@ public class ScannerActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_scanner);
+
+        Backend.xdtMobileJsonFile = new File(this.getExternalFilesDir(null), getString(R.string.xdt_data_file));
 
         // BEEPS
         soundIDbeep = MediaPlayer.create(this, R.raw.genericbeep);
@@ -57,6 +55,10 @@ public class ScannerActivity extends AppCompatActivity {
         cancelScanFab = findViewById(R.id.fabCancel);
         cancelScanFab.setOnClickListener(view -> closeCameraInterface());
 
+        // SAVE BUTTON
+        Button saveButton = findViewById(R.id.btn_save);
+        saveButton.setOnClickListener(view -> doSaveClose());
+
         // CODE SCANNER
         scannerView = findViewById(R.id.codeScanner);
         codeScanner = new CodeScanner(this, scannerView);
@@ -66,26 +68,13 @@ public class ScannerActivity extends AppCompatActivity {
         }));
 
         // CREATE DATA LIST
-        ssccCards = new ArrayList<>();
-        for (int i=0; i < xbackend.xdManifest.ssccList.size(); i++){
-            int drawImage;
-            if (xbackend.xdManifest.ssccList.get(i).unknown) {
-                drawImage = R.drawable.ic_unknown;
-            } else if (xbackend.xdManifest.ssccList.get(i).scanned) {
-                drawImage = R.drawable.ic_scanned;
-            } else {
-                drawImage = R.drawable.ic_unscanned;
-            }
-            ssccCards.add(new SSCCCard(drawImage, xbackend.xdManifest.ssccList.get(i).ssccID, xbackend.xdManifest.ssccList.get(i).description, xbackend.xdManifest.ssccList.get(i).highRisk));
-        }
+        dataList = findViewById(R.id.tv_dataList);
 
-        recyclerView = findViewById(R.id.rcv_data_container);
-        recyclerView.setHasFixedSize(true);
-        RVlayoutManager = new LinearLayoutManager(this);
-        RVadapter = new SSCCAdapter(ssccCards);
+        TextView tbText = findViewById(R.id.tb_text);
+        tbText.setText(String.format("Manifest %s", Backend.xdManifest.manifestID));
 
-        recyclerView.setLayoutManager(RVlayoutManager);
-        recyclerView.setAdapter(RVadapter);
+        statusText = findViewById(R.id.tx_statusBar);
+        doDataRefresh();
     }
 
     @Override
@@ -129,32 +118,61 @@ public class ScannerActivity extends AppCompatActivity {
     }
 
     private void checkBarcode(String barcode) {
-        Log.e("XDM", barcode);
         boolean matchFound = false;
-        for (int i=0; i < xbackend.xdManifest.ssccList.size(); i++) {
-            if (xbackend.xdManifest.ssccList.get(i).ssccID.contains(barcode)) {
-                Log.e("XDM", xbackend.xdManifest.ssccList.get(i).ssccID);
-                if (xbackend.xdManifest.ssccList.get(i).highRisk) {
+        statusText.setText(barcode);
+        for (int i=0; i < Backend.xdManifest.ssccList.size(); i++) {
+            if (Backend.xdManifest.ssccList.get(i).ssccID.contains(barcode)) {
+                Backend.xdManifest.ssccList.get(i).scanned = true;
+                if (Backend.xdManifest.ssccList.get(i).highRisk) {
                     soundIDwarn.start();
+                    new AlertDialog.Builder(this)
+                            .setMessage("This is a high-risk carton.")
+                            .setPositiveButton("Ok", null)
+                            .show();
                 } else {
                     soundIDbeep.start();
                 }
-                xbackend.xdManifest.ssccList.get(i).scanned = true;
                 matchFound = true;
-                // TODO CALL CARD REFRESH
-
                 break;
             }
         }
 
         if (!matchFound){
             soundIDerror.start();
-            // TODO PROMPT NEW CARD
+            // TODO PROMPT NEW Entry
+            new AlertDialog.Builder(this)
+                    .setMessage("SSCC: " + barcode + " is not in the manifest.\nAdd as missing carton?")
+                    .setPositiveButton("No", null)
+                    .setNegativeButton("No", null)
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .show();
         }
+
+        doDataRefresh();
 
     }
 
-    private void doCardRefresh(){
+    private void doDataRefresh(){
+        StringBuilder dataText = new StringBuilder();
+        for (int i=0; i < Backend.xdManifest.ssccList.size(); i++) {
+            if (Backend.xdManifest.ssccList.get(i).scanned){dataText.append("[███] ");} else {dataText.append("[░░░] ");}
+            dataText.append(Backend.xdManifest.ssccList.get(i).ssccID.substring(Backend.xdManifest.ssccList.get(i).ssccID.length() - 4));
+            dataText.append(" - ").append(fixedLengthString(Backend.xdManifest.ssccList.get(i).ssccID, 18));
+            dataText.append("\n");
+            dataText.append("              - ").append(Backend.xdManifest.ssccList.get(i).description);
+            if (Backend.xdManifest.ssccList.get(i).highRisk) {dataText.append("\n              - ").append("High Risk");}
+            dataText.append("\n\n");
+        }
 
+        dataList.setText(dataText.toString());
+    }
+
+    private void doSaveClose(){
+        Backend.exportJson();
+        this.finish();
+    }
+
+    public static String fixedLengthString(String string, int length) {
+        return String.format("%1$"+length+ "s", string);
     }
 }

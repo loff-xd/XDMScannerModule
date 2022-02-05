@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">XDMScannerModule</string>
+    <string name="app_name">Scanner</string>
     <string name="action_settings">Settings</string>
 
     <string name="title_activity_camera_interface">CameraInterface</string>
@@ -7,4 +7,8 @@
     <string name="begin_scanning">Begin Scanning</string>
     <string name="lastfour_placeholder">0000</string>
     <string name="jsonImportError">Failed to import JSON file, it may be missing or corrupt.</string>
+    <string name="ready">Ready</string>
+    <string name="xdt_data_file">xdt_mobile.json</string>
+    <string name="resume_scanning">Resume Scanning</string>
+    <string name="save">Save</string>
 </resources>

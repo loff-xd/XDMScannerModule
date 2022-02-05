@@ -6,13 +6,82 @@
     android:layout_height="match_parent"
     tools:context=".ScannerActivity">
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rcv_data_container"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:padding="4dp"
-        tools:layout_editor_absoluteX="1dp"
-        tools:layout_editor_absoluteY="1dp" />
+        android:orientation="vertical">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/tb_toolBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:alpha="255"
+            android:background="?attr/colorPrimary"
+            android:minHeight="?attr/actionBarSize"
+            android:theme="?attr/actionBarTheme">
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <TextView
+                    android:id="@+id/tb_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textColor="?android:attr/textColorPrimaryInverseNoDisable"
+                    android:textSize="24sp"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <Button
+                    android:id="@+id/btn_save"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="16dp"
+                    android:text="@string/save"
+                    android:visibility="visible"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
+                    tools:ignore="SpeakableTextPresentCheck" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </androidx.appcompat.widget.Toolbar>
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="10">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_dataList"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:padding="8dp"
+                    android:textColor="?android:attr/textColorPrimary"
+                    android:textSize="16sp" />
+            </LinearLayout>
+        </ScrollView>
+
+        <TextView
+            android:id="@+id/tx_statusBar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="0"
+            android:background="#CCCCCC"
+            android:fontFamily="monospace"
+            android:paddingHorizontal="16dp"
+            android:text="@string/ready"
+            android:textColor="#455A64" />
+
+    </LinearLayout>
 
     <com.budiyev.android.codescanner.CodeScannerView
         android:id="@+id/codeScanner"
