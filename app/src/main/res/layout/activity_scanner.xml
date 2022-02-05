@@ -27,10 +27,13 @@
                 <TextView
                     android:id="@+id/tb_text"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_height="0dp"
+                    android:layout_marginTop="11dp"
+                    android:layout_marginBottom="10dp"
+                    android:fontFamily="monospace"
                     android:textColor="?android:attr/textColorPrimaryInverseNoDisable"
-                    android:textSize="24sp"
+                    android:textSize="20sp"
+                    app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toTopOf="parent" />
 
@@ -43,7 +46,7 @@
                     android:visibility="visible"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
-                    tools:ignore="SpeakableTextPresentCheck" />
+                    tools:ignore="SpeakableTextPresentCheck,TextContrastCheck" />
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
@@ -111,6 +114,7 @@
         android:alpha=".3"
         android:clickable="true"
         android:contentDescription="@string/scan_barcode"
+        android:minWidth="48dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -131,5 +135,17 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:srcCompat="@android:drawable/ic_menu_close_clear_cancel"
         tools:ignore="SpeakableTextPresentCheck" />
+
+    <View
+        android:id="@+id/view_darken_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/black_overlay"
+        android:focusable="false"
+        android:focusableInTouchMode="false"
+        android:focusedByDefault="false"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

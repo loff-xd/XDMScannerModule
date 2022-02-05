@@ -6,11 +6,19 @@ import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
 import android.os.Bundle;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.TextView;
 
 import com.budiyev.android.codescanner.CodeScanner;
@@ -18,6 +26,7 @@ import com.budiyev.android.codescanner.CodeScannerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.io.File;
+import java.util.concurrent.Executor;
 
 
 public class ScannerActivity extends AppCompatActivity {
@@ -29,11 +38,18 @@ public class ScannerActivity extends AppCompatActivity {
 
     private TextView dataList;
     private TextView statusText;
+    private View darkenOverlay;
 
-    // BEEP
+    // BEEPS + HAPTICS
     MediaPlayer soundIDbeep;
     MediaPlayer soundIDwarn;
     MediaPlayer soundIDerror;
+    Vibrator vibrator;
+    Executor HapticRunner;
+    final int H_NORMAL = 0;
+    final int H_WARN = 1;
+    final int H_ERROR = 2;
+    final VibrationEffect normalPattern = VibrationEffect.createOneShot(80, VibrationEffect.DEFAULT_AMPLITUDE);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,10 +58,12 @@ public class ScannerActivity extends AppCompatActivity {
 
         Backend.xdtMobileJsonFile = new File(this.getExternalFilesDir(null), getString(R.string.xdt_data_file));
 
-        // BEEPS
+        // BEEPS + HAPTICS
         soundIDbeep = MediaPlayer.create(this, R.raw.genericbeep);
         soundIDwarn = MediaPlayer.create(this, R.raw.warnbeep);
         soundIDerror = MediaPlayer.create(this, R.raw.errorbeep);
+        vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+        HapticRunner = getMainExecutor();
 
         // SCAN BUTTON
         scanBarcodeFab = findViewById(R.id.fabScan);
@@ -59,6 +77,9 @@ public class ScannerActivity extends AppCompatActivity {
         Button saveButton = findViewById(R.id.btn_save);
         saveButton.setOnClickListener(view -> doSaveClose());
 
+        // OVERLAY
+        darkenOverlay = findViewById(R.id.view_darken_overlay);
+
         // CODE SCANNER
         scannerView = findViewById(R.id.codeScanner);
         codeScanner = new CodeScanner(this, scannerView);
@@ -71,7 +92,7 @@ public class ScannerActivity extends AppCompatActivity {
         dataList = findViewById(R.id.tv_dataList);
 
         TextView tbText = findViewById(R.id.tb_text);
-        tbText.setText(String.format("Manifest %s", Backend.xdManifest.manifestID));
+        tbText.setText(String.format("MANIFEST: %s", Backend.xdManifest.manifestID));
 
         statusText = findViewById(R.id.tx_statusBar);
         doDataRefresh();
@@ -119,30 +140,50 @@ public class ScannerActivity extends AppCompatActivity {
 
     private void checkBarcode(String barcode) {
         boolean matchFound = false;
-        statusText.setText(barcode);
         for (int i=0; i < Backend.xdManifest.ssccList.size(); i++) {
             if (Backend.xdManifest.ssccList.get(i).ssccID.contains(barcode)) {
+                // ALREADY SCANNED
+                if (Backend.xdManifest.ssccList.get(i).scanned) {
+                    matchFound = true;
+                    soundIDerror.start();
+                    doHaptics(H_ERROR);
+                    new AlertDialog.Builder(this)
+                            .setMessage("SSCC already scanned.")
+                            .setPositiveButton("Ok", null)
+                            .show();
+                    break;
+                }
+
                 Backend.xdManifest.ssccList.get(i).scanned = true;
+
+                // IS HIGH RISK
                 if (Backend.xdManifest.ssccList.get(i).highRisk) {
                     soundIDwarn.start();
+                    doHaptics(H_WARN);
+                    statusText.setText(String.format("%s: HIGH-RISK", barcode));
                     new AlertDialog.Builder(this)
-                            .setMessage("This is a high-risk carton.")
+                            .setMessage("This is a high-risk carton.\n Please action accordingly.")
                             .setPositiveButton("Ok", null)
                             .show();
                 } else {
+                    // NORMAL SCAN
                     soundIDbeep.start();
+                    doHaptics(H_NORMAL);
+                    statusText.setText(String.format("%s: OK", barcode));
                 }
                 matchFound = true;
                 break;
             }
         }
 
+        // UNKNOWN CARTON
         if (!matchFound){
             soundIDerror.start();
-            // TODO PROMPT NEW Entry
+            doHaptics(H_ERROR);
+            statusText.setText(String.format("%s: UNKNOWN", barcode));
             new AlertDialog.Builder(this)
                     .setMessage("SSCC: " + barcode + " is not in the manifest.\nAdd as missing carton?")
-                    .setPositiveButton("No", null)
+                    .setPositiveButton("Yes", (dialogInterface, i) -> showUnknownSSCCDialog())
                     .setNegativeButton("No", null)
                     .setIcon(android.R.drawable.ic_dialog_alert)
                     .show();
@@ -152,15 +193,17 @@ public class ScannerActivity extends AppCompatActivity {
 
     }
 
+    // REFRESH SSCC LIST
     private void doDataRefresh(){
         StringBuilder dataText = new StringBuilder();
         for (int i=0; i < Backend.xdManifest.ssccList.size(); i++) {
-            if (Backend.xdManifest.ssccList.get(i).scanned){dataText.append("[███] ");} else {dataText.append("[░░░] ");}
             dataText.append(Backend.xdManifest.ssccList.get(i).ssccID.substring(Backend.xdManifest.ssccList.get(i).ssccID.length() - 4));
-            dataText.append(" - ").append(fixedLengthString(Backend.xdManifest.ssccList.get(i).ssccID, 18));
-            dataText.append("\n");
-            dataText.append("              - ").append(Backend.xdManifest.ssccList.get(i).description);
-            if (Backend.xdManifest.ssccList.get(i).highRisk) {dataText.append("\n              - ").append("High Risk");}
+            if (Backend.xdManifest.ssccList.get(i).scanned){dataText.append(" [███] [ ");} else {dataText.append(" [░░░] [ ");}
+
+            dataText.append(fixedLengthString(Backend.xdManifest.ssccList.get(i).ssccID, 18));
+            dataText.append(" ]\n");
+            dataText.append("     - ").append(Backend.xdManifest.ssccList.get(i).description);
+            if (Backend.xdManifest.ssccList.get(i).highRisk) {dataText.append("\n     - ").append("HIGH-RISK");}
             dataText.append("\n\n");
         }
 
@@ -172,7 +215,123 @@ public class ScannerActivity extends AppCompatActivity {
         this.finish();
     }
 
+    private void showUnknownSSCCDialog() {
+        darkenOverlay.setVisibility(View.VISIBLE);
+        LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
+        View view = inflater.inflate(R.layout.missing_carton_window, null);
+        int width = LinearLayout.LayoutParams.WRAP_CONTENT;
+        int height = LinearLayout.LayoutParams.WRAP_CONTENT;
+        final PopupWindow popupWindow = new PopupWindow(view, width, height, true);
+        popupWindow.setElevation(10);
+        popupWindow.setOutsideTouchable(false);
+        popupWindow.setAnimationStyle(R.style.Animation_AppCompat_Dialog);
+        popupWindow.showAtLocation(view, Gravity.CENTER, 0, 0);
+
+        // GTIN SCANNER + SUPPORT ELEMENTS
+        EditText textGTIN = view.findViewById(R.id.entry_article_gtin);
+
+        CodeScannerView gtinScannerView = view.findViewById(R.id.codescanner_gtin);
+        CodeScanner gtinCodeScanner = new CodeScanner(this, gtinScannerView);
+
+        // TEXT ELEMENTS
+        EditText textQTY = view.findViewById(R.id.entry_article_qty);
+        textQTY.setText("1");
+
+        // BUTTONS
+        Button scanButton = view.findViewById(R.id.btn_scan_gtin);
+        Button cancelButton = view.findViewById(R.id.extra_sscc_btn_cancel);
+        Button saveButton = view.findViewById(R.id.extra_sscc_button_save);
+        Button addButton = view.findViewById(R.id.btn_add_article);
+
+        // CODE SCANNER
+        gtinCodeScanner.setDecodeCallback(result -> runOnUiThread(() -> {
+            textGTIN.setText(result.getText());
+            gtinCodeScanner.stopPreview();
+            gtinScannerView.setVisibility(View.GONE);
+            scanButton.setText(R.string.scan);
+            doHaptics(H_NORMAL);
+        }));
+
+        // SCAN BUTTON
+        scanButton.setOnClickListener(view1 -> {
+            if (gtinCodeScanner.isPreviewActive()) {
+                gtinCodeScanner.stopPreview();
+                gtinScannerView.setVisibility(View.GONE);
+                scanButton.setText(R.string.scan);
+            } else {
+                gtinScannerView.setVisibility(View.VISIBLE);
+                gtinCodeScanner.startPreview();
+                scanButton.setText(R.string.stop);
+            }
+        });
+
+        // CANCEL BUTTON + DISMISSAL
+        cancelButton.setOnClickListener(view12 -> {
+            if (gtinCodeScanner.isPreviewActive()) {
+                gtinCodeScanner.stopPreview();
+                gtinScannerView.setVisibility(View.GONE);
+            }
+            darkenOverlay.setVisibility(View.GONE);
+            popupWindow.dismiss();
+        });
+
+        popupWindow.setOnDismissListener(() -> {
+            if (gtinCodeScanner.isPreviewActive()) {
+                gtinCodeScanner.stopPreview();
+                gtinScannerView.setVisibility(View.GONE);
+            }
+            darkenOverlay.setVisibility(View.GONE);
+            popupWindow.dismiss();
+        });
+
+        saveButton.setOnClickListener(view13 -> {
+            // TODO CREATE SSCC WITH ARTICLE LIST
+        });
+
+        addButton.setOnClickListener(view14 -> {
+            // TODO ADD TO ARRAY OF ARTICLES
+        });
+    }
+
     public static String fixedLengthString(String string, int length) {
         return String.format("%1$"+length+ "s", string);
+    }
+
+    Runnable normalHaptic = () -> vibrator.vibrate(normalPattern);
+    Runnable warnHaptic = () -> {
+        try {
+            vibrator.vibrate(normalPattern);
+            Thread.sleep(300);
+            vibrator.vibrate(normalPattern);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    };
+    Runnable errorHaptic = () -> {
+        try {
+            vibrator.vibrate(normalPattern);
+            Thread.sleep(200);
+            vibrator.vibrate(normalPattern);
+            Thread.sleep(200);
+            vibrator.vibrate(normalPattern);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    };
+
+    public void doHaptics(int type) {
+        switch (type){
+
+            case H_WARN:
+                HapticRunner.execute(warnHaptic);
+                break;
+            case H_ERROR:
+                HapticRunner.execute(errorHaptic);
+                break;
+            case H_NORMAL:
+            default:
+                HapticRunner.execute(normalHaptic);
+                break;
+        }
     }
 }

@@ -6,9 +6,14 @@
     <string name="scan_barcode">Scan Barcode</string>
     <string name="begin_scanning">Begin Scanning</string>
     <string name="lastfour_placeholder">0000</string>
-    <string name="jsonImportError">Failed to import JSON file, it may be missing or corrupt.</string>
+    <string name="jsonImportError">Failed to import JSON file, it may be missing or corrupt.\n\nFile should be copied to this location:\n\n</string>
     <string name="ready">Ready</string>
     <string name="xdt_data_file">xdt_mobile.json</string>
     <string name="resume_scanning">Resume Scanning</string>
     <string name="save">Save</string>
+    <string name="add">Add</string>
+    <string name="scan">SCAN</string>
+    <string name="gtin">GTIN</string>
+    <string name="qty">Qty</string>
+    <string name="stop">Stop</string>
 </resources>

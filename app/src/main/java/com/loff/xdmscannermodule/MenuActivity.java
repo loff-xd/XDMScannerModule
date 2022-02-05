@@ -13,6 +13,7 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import java.io.File;
+import java.util.concurrent.Executor;
 
 public class MenuActivity extends AppCompatActivity {
 
@@ -46,34 +47,44 @@ public class MenuActivity extends AppCompatActivity {
         refreshLayout.setOnRefreshListener(this::doBackendLoad);
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        doBackendLoad();
+    }
+
     private void doBackendLoad(){
-        if (Backend.importJson()) {
-            int scannedCount = 0;
-            int unknownCount = 0;
-            int hrCount = 0;
-            for (int i=0; i<Backend.xdManifest.ssccList.size(); i++){
-                if (Backend.xdManifest.ssccList.get(i).scanned) { scannedCount++; }
-                if (Backend.xdManifest.ssccList.get(i).unknown) { unknownCount++; }
-                if (Backend.xdManifest.ssccList.get(i).highRisk) { hrCount++; }
+        Executor IORunner = getMainExecutor();
+        IORunner.execute(() -> {
+            refreshLayout.setRefreshing(true);
+
+            if (Backend.importJson()) {
+                int scannedCount = 0;
+                int unknownCount = 0;
+                int hrCount = 0;
+                for (int i=0; i<Backend.xdManifest.ssccList.size(); i++){
+                    if (Backend.xdManifest.ssccList.get(i).scanned) { scannedCount++; }
+                    if (Backend.xdManifest.ssccList.get(i).unknown) { unknownCount++; }
+                    if (Backend.xdManifest.ssccList.get(i).highRisk) { hrCount++; }
+                }
+
+                String sb = "Target Manifest: " +
+                        Backend.xdManifest.manifestID +
+                        "\n\nSSCCs: " +
+                        Backend.xdManifest.ssccList.size() +
+                        " (Scanned: " + scannedCount + ")" +
+                        " (Extras: " + unknownCount + ")" +
+                        "\n\nHigh-Risk SSCCs: " + hrCount;
+                txtStatusText.setText(sb);
+                btnBeginScanning.setEnabled(true);
+                if (scannedCount > 0) {btnBeginScanning.setText(R.string.resume_scanning);}
+            } else {
+                btnBeginScanning.setEnabled(false);
+                txtStatusText.setText(R.string.jsonImportError);
+                txtStatusText.append(Backend.xdtMobileJsonFile.getAbsolutePath());
             }
 
-            String sb = "Target Manifest: " +
-                    Backend.xdManifest.manifestID +
-                    "\n\nSSCCs: " +
-                    Backend.xdManifest.ssccList.size() +
-                    " (Scanned: " + scannedCount + ")" +
-                    " (Extras: " + unknownCount + ")" +
-                    "\n\nHigh-Risk SSCCs: " + hrCount;
-            txtStatusText.setText(sb);
-            btnBeginScanning.setEnabled(true);
-            if (scannedCount > 0) {btnBeginScanning.setText(R.string.resume_scanning);}
-        } else {
-            btnBeginScanning.setEnabled(false);
-            txtStatusText.setText(R.string.jsonImportError);
-            txtStatusText.append("\n\nStorage location:\n");
-            txtStatusText.append(Backend.xdtMobileJsonFile.getAbsolutePath());
-        }
-
-        refreshLayout.setRefreshing(false);
+            refreshLayout.setRefreshing(false);
+        });
     }
 }

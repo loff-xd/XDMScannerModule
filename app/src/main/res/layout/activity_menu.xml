@@ -6,19 +6,34 @@
     android:layout_height="match_parent"
     tools:context=".MenuActivity">
 
-    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-        android:id="@+id/refresh_layout"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/txt_status_text"
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/tb_main_toolbar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="32dp"
-            android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
+            android:background="?attr/colorPrimary"
+            android:minHeight="?attr/actionBarSize"
+            android:theme="?attr/actionBarTheme"
+            app:title="X-DOCK Manifest Scanner" />
 
-    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+            android:id="@+id/refresh_layout"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:id="@+id/txt_status_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="32dp"
+                android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
+
+        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+    </LinearLayout>
 
 
     <Button
@@ -29,6 +44,7 @@
         android:layout_marginBottom="16dp"
         android:text="@string/begin_scanning"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:ignore="TextContrastCheck" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -11,6 +11,8 @@ import java.io.FileWriter;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 
 public class Backend {
     public static XDManifest xdManifest;
@@ -21,6 +23,15 @@ public class Backend {
         Boolean scanned = false;
         Boolean unknown = false;
         String description = "";
+        Boolean highRisk = false;
+        ArrayList<Article> articles = new ArrayList<>();
+    }
+
+    public static class Article {
+        String code;
+        String desc;
+        String GTIN;
+        int QTY;
         Boolean highRisk = false;
     }
 
@@ -41,11 +52,28 @@ public class Backend {
             JSONArray json_sscc_array = new JSONArray();
 
             for (int i = 0; i < xdManifest.ssccList.size(); i++){
+
+                // ARTICLE LIST GEN
+                JSONArray json_article_array = new JSONArray();
+                for (int j=0; j < xdManifest.ssccList.get(i).articles.size(); j++){
+
+                    json_article_array.put(new JSONObject()
+                    .put("Code", xdManifest.ssccList.get(i).articles.get(j).code)
+                    .put("Desc", xdManifest.ssccList.get(i).articles.get(j).desc)
+                    .put("GTIN", xdManifest.ssccList.get(i).articles.get(j).GTIN)
+                    .put("QTY", xdManifest.ssccList.get(i).articles.get(j).QTY)
+                    .put("is_HR", xdManifest.ssccList.get(i).articles.get(j).highRisk)
+                    );
+
+                }
+
+                // SSCC GEN
                 json_sscc_array.put(new JSONObject()
                 .put("SSCC", xdManifest.ssccList.get(i).ssccID)
                 .put("Scanned", xdManifest.ssccList.get(i).scanned)
                 .put("Unknown", xdManifest.ssccList.get(i).unknown)
                 .put("is_HR", xdManifest.ssccList.get(i).highRisk)
+                .put("Articles", json_article_array)
                 );
             }
 
@@ -82,20 +110,45 @@ public class Backend {
                 JSONArray jSSCCs = Jmanifest.getJSONArray("SSCCs");
 
                 for (int i=0; i < jSSCCs.length(); i++){
+                    // SSCC READ
                     SSCC newSSCC = new SSCC();
                     JSONObject jSSCC = jSSCCs.getJSONObject(i);
+
                     newSSCC.ssccID = jSSCC.getString("SSCC");
                     newSSCC.highRisk = jSSCC.getBoolean("is_HR");
-
-                    // newSSCC.description = jSSCC.getString("Description");
-
-
-
                     if (jSSCC.has("Scanned")) { newSSCC.scanned = jSSCC.getBoolean("Scanned"); }
                     if (jSSCC.has("Unknown")) { newSSCC.unknown = jSSCC.getBoolean("Unknown"); }
+
+                    // SSCC ARTICLES READ
+                    JSONArray articles = jSSCC.getJSONArray("Articles");
+                    for (int j=0; j < articles.length(); j++){
+                        Article newArticle = new Article();
+                        JSONObject article = articles.getJSONObject(j);
+
+                        newArticle.code = article.getString("Code");
+                        newArticle.desc = article.getString("Desc");
+                        newArticle.GTIN = article.getString("GTIN");
+                        newArticle.QTY = article.getInt("QTY");
+                        newArticle.highRisk = article.getBoolean("is_HR");
+
+                        newSSCC.articles.add(newArticle);
+                    }
+
+                    if (newSSCC.articles.size() > 1) {
+                        newSSCC.description = "MULTI - LINES: " + newSSCC.articles.size();
+                    } else {
+                        newSSCC.description = newSSCC.articles.get(0).desc;
+                    }
+
                     xdManifest.ssccList.add(newSSCC);
                 }
 
+                // SORT THE NEW ARRAY
+                xdManifest.ssccList.sort((sscc, t1) -> {
+                    int ssccLF = Integer.parseInt(sscc.ssccID.substring(sscc.ssccID.length() - 4));
+                    int t1LF = Integer.parseInt(t1.ssccID.substring(t1.ssccID.length() - 4));
+                    return ssccLF - t1LF;
+                });
 
 
             } catch (Exception e) {
