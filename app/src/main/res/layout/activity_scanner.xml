@@ -96,7 +96,7 @@
         app:flashButtonColor="@android:color/white"
         app:flashButtonVisible="true"
         app:frameAspectRatioHeight="1"
-        app:frameAspectRatioWidth="3"
+        app:frameAspectRatioWidth="2"
         app:frameColor="@android:color/white"
         app:frameCornersRadius="6dp"
         app:frameCornersSize="32dp"

@@ -132,7 +132,13 @@
         app:layout_constraintBottom_toBottomOf="@id/article_text_scrollview"
         app:layout_constraintEnd_toEndOf="@+id/article_text_scrollview"
         app:layout_constraintStart_toStartOf="@id/article_text_scrollview"
-        app:layout_constraintTop_toTopOf="@id/article_text_scrollview" />
+        app:layout_constraintTop_toTopOf="@id/article_text_scrollview"
+        app:frameAspectRatioHeight="1"
+        app:frameAspectRatioWidth="3"
+        app:frameColor="@android:color/white"
+        app:frameCornersRadius="6dp"
+        app:frameCornersSize="32dp"
+        app:frameSize="0.9"/>
 
     <CheckBox
         android:id="@+id/cb_HR"
