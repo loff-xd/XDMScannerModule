@@ -5,6 +5,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -16,6 +17,7 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
@@ -26,6 +28,7 @@ import com.budiyev.android.codescanner.CodeScannerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.concurrent.Executor;
 
 
@@ -183,7 +186,7 @@ public class ScannerActivity extends AppCompatActivity {
             statusText.setText(String.format("%s: UNKNOWN", barcode));
             new AlertDialog.Builder(this)
                     .setMessage("SSCC: " + barcode + " is not in the manifest.\nAdd as missing carton?")
-                    .setPositiveButton("Yes", (dialogInterface, i) -> showUnknownSSCCDialog())
+                    .setPositiveButton("Yes", (dialogInterface, i) -> showUnknownSSCCDialog(barcode))
                     .setNegativeButton("No", null)
                     .setIcon(android.R.drawable.ic_dialog_alert)
                     .show();
@@ -215,10 +218,11 @@ public class ScannerActivity extends AppCompatActivity {
         this.finish();
     }
 
-    private void showUnknownSSCCDialog() {
+    private void showUnknownSSCCDialog(String barcode) {
+        // CREATE WINDOW
         darkenOverlay.setVisibility(View.VISIBLE);
         LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
-        View view = inflater.inflate(R.layout.missing_carton_window, null);
+        @SuppressLint("InflateParams") View view = inflater.inflate(R.layout.missing_carton_window, null);
         int width = LinearLayout.LayoutParams.WRAP_CONTENT;
         int height = LinearLayout.LayoutParams.WRAP_CONTENT;
         final PopupWindow popupWindow = new PopupWindow(view, width, height, true);
@@ -235,6 +239,7 @@ public class ScannerActivity extends AppCompatActivity {
 
         // TEXT ELEMENTS
         EditText textQTY = view.findViewById(R.id.entry_article_qty);
+        TextView textArticleList = view.findViewById(R.id.text_article_list);
         textQTY.setText("1");
 
         // BUTTONS
@@ -242,6 +247,7 @@ public class ScannerActivity extends AppCompatActivity {
         Button cancelButton = view.findViewById(R.id.extra_sscc_btn_cancel);
         Button saveButton = view.findViewById(R.id.extra_sscc_button_save);
         Button addButton = view.findViewById(R.id.btn_add_article);
+        CheckBox checkHighRisk = view.findViewById(R.id.cb_HR);
 
         // CODE SCANNER
         gtinCodeScanner.setDecodeCallback(result -> runOnUiThread(() -> {
@@ -284,12 +290,57 @@ public class ScannerActivity extends AppCompatActivity {
             popupWindow.dismiss();
         });
 
-        saveButton.setOnClickListener(view13 -> {
-            // TODO CREATE SSCC WITH ARTICLE LIST
-        });
+        // SSCC CREATION
+        ArrayList<Backend.Article> articleList = new ArrayList<>();
 
         addButton.setOnClickListener(view14 -> {
-            // TODO ADD TO ARRAY OF ARTICLES
+            if(!(textGTIN.getText().toString().equals("") || textQTY.getText().toString().equals(""))) {
+                // NEW ARTICLE
+                Backend.Article newArticle = new Backend.Article();
+                newArticle.GTIN = textGTIN.getText().toString();
+                newArticle.QTY = Integer.parseInt(textQTY.getText().toString());
+                newArticle.highRisk = checkHighRisk.isChecked();
+                newArticle.code = "";
+                newArticle.desc = "";
+                articleList.add(newArticle);
+
+                // RESET FIELDS
+                textGTIN.setText("");
+                textQTY.setText("1");
+                checkHighRisk.setChecked(false);
+
+                // UPDATE LIST
+                StringBuilder articleListOutput = new StringBuilder();
+                for (int i = 0; i < articleList.size(); i++) {
+                    articleListOutput.append("\n").append(articleList.get(i).QTY).append("x ").append(articleList.get(i).GTIN);
+                    if (articleList.get(i).highRisk) {
+                        articleListOutput.append("\n  - HIGH-RISK");
+                    }
+                }
+                textArticleList.setText(articleListOutput.toString());
+            }
+        });
+
+        saveButton.setOnClickListener(view13 -> {
+            Backend.SSCC newSSCC = new Backend.SSCC();
+            newSSCC.ssccID = barcode;
+            newSSCC.unknown = true;
+            newSSCC.scanned = true;
+            newSSCC.description = "Manually Added";
+            newSSCC.highRisk = false;
+            for (int i=0; i<articleList.size(); i++){
+                if (articleList.get(i).highRisk) { newSSCC.highRisk = true; }
+            }
+            newSSCC.articles = articleList;
+            Backend.xdManifest.ssccList.add(newSSCC);
+            doDataRefresh();
+
+            if (gtinCodeScanner.isPreviewActive()) {
+                gtinCodeScanner.stopPreview();
+                gtinScannerView.setVisibility(View.GONE);
+            }
+            darkenOverlay.setVisibility(View.GONE);
+            popupWindow.dismiss();
         });
     }
 

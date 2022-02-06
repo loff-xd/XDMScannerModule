@@ -16,4 +16,5 @@
     <string name="gtin">GTIN</string>
     <string name="qty">Qty</string>
     <string name="stop">Stop</string>
+    <string name="high_risk">High-Risk</string>
 </resources>

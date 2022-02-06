@@ -114,7 +114,7 @@
             <TextView
                 android:id="@+id/text_article_list"
                 android:layout_width="378dp"
-                android:layout_height="0dp"
+                android:layout_height="wrap_content"
                 android:layout_marginStart="4dp"
                 android:layout_weight="1"
                 android:fontFamily="monospace"
@@ -133,5 +133,14 @@
         app:layout_constraintEnd_toEndOf="@+id/article_text_scrollview"
         app:layout_constraintStart_toStartOf="@id/article_text_scrollview"
         app:layout_constraintTop_toTopOf="@id/article_text_scrollview" />
+
+    <CheckBox
+        android:id="@+id/cb_HR"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:text="@string/high_risk"
+        app:layout_constraintStart_toEndOf="@+id/entry_article_qty"
+        app:layout_constraintTop_toTopOf="@+id/entry_article_qty" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
