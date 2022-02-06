@@ -1,11 +1,6 @@
 package com.loff.xdmscannermodule;
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-
 import android.Manifest;
-import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -13,15 +8,16 @@ import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
-import android.view.Gravity;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
-import android.widget.LinearLayout;
-import android.widget.PopupWindow;
 import android.widget.TextView;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import com.budiyev.android.codescanner.CodeScanner;
 import com.budiyev.android.codescanner.CodeScannerView;
@@ -39,9 +35,20 @@ public class ScannerActivity extends AppCompatActivity {
     private CodeScannerView scannerView;
     private CodeScanner codeScanner;
 
+    private ConstraintLayout articleDialogLayout;
+    private View darkOverlay;
+    private boolean articleDialogIsVisible = false;
+    private EditText textGTIN;
+    private EditText textQTY;
+    private TextView textArticleList;
+    private Button scanButton;
+    private Button cancelButton;
+    private Button articleSaveButton;
+    private Button addButton;
+    private CheckBox checkHighRisk;
+
     private TextView dataList;
     private TextView statusText;
-    private View darkenOverlay;
 
     // BEEPS + HAPTICS
     MediaPlayer soundIDbeep;
@@ -81,22 +88,44 @@ public class ScannerActivity extends AppCompatActivity {
         saveButton.setOnClickListener(view -> doSaveClose());
 
         // OVERLAY
-        darkenOverlay = findViewById(R.id.view_darken_overlay);
+        articleDialogLayout = findViewById(R.id.container_new_article);
+        darkOverlay = findViewById(R.id.view_darken_overlay);
 
         // CODE SCANNER
         scannerView = findViewById(R.id.codeScanner);
         codeScanner = new CodeScanner(this, scannerView);
         codeScanner.setDecodeCallback(result -> runOnUiThread(() -> {
-            checkBarcode(result.getText());
+            if (articleDialogIsVisible){
+                textGTIN.setText(result.toString());
+            } else {
+                checkBarcode(result.getText());
+            }
             closeCameraInterface();
         }));
 
+        // ARTICLE WINDOW
+        textQTY = findViewById(R.id.entry_article_qty);
+        textArticleList = findViewById(R.id.text_article_list);
+        scanButton = findViewById(R.id.btn_scan_gtin);
+        cancelButton = findViewById(R.id.extra_sscc_btn_cancel);
+        articleSaveButton = findViewById(R.id.extra_sscc_button_save);
+        addButton = findViewById(R.id.btn_add_article);
+        checkHighRisk = findViewById(R.id.cb_HR);
+        textGTIN = findViewById(R.id.entry_article_gtin);
+
+        scanButton.setOnClickListener(view1 -> openCameraInterface());
+
+        // CANCEL BUTTON + DISMISSAL
+        cancelButton.setOnClickListener(view12 -> {
+            articleDialogIsVisible = false;
+            articleDialogLayout.setVisibility(View.GONE);
+            darkOverlay.setVisibility(View.GONE);
+        });
+
         // CREATE DATA LIST
         dataList = findViewById(R.id.tv_dataList);
-
         TextView tbText = findViewById(R.id.tb_text);
         tbText.setText(String.format("MANIFEST: %s", Backend.xdManifest.manifestID));
-
         statusText = findViewById(R.id.tx_statusBar);
         doDataRefresh();
     }
@@ -123,11 +152,10 @@ public class ScannerActivity extends AppCompatActivity {
     private void openCameraInterface() {
         // CHECK PERMS AND ASK IF MISSING
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-
-            codeScanner.startPreview();
             scannerView.setVisibility(View.VISIBLE);
             cancelScanFab.setVisibility(View.VISIBLE);
             scanBarcodeFab.setVisibility(View.INVISIBLE);
+            codeScanner.startPreview();
 
         } else {
             ActivityCompat.requestPermissions(ScannerActivity.this, new String[] {Manifest.permission.CAMERA}, 5);
@@ -219,76 +247,13 @@ public class ScannerActivity extends AppCompatActivity {
     }
 
     private void showUnknownSSCCDialog(String barcode) {
-        // CREATE WINDOW
-        darkenOverlay.setVisibility(View.VISIBLE);
-        LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
-        @SuppressLint("InflateParams") View view = inflater.inflate(R.layout.missing_carton_window, null);
-        int width = LinearLayout.LayoutParams.WRAP_CONTENT;
-        int height = LinearLayout.LayoutParams.WRAP_CONTENT;
-        final PopupWindow popupWindow = new PopupWindow(view, width, height, true);
-        popupWindow.setElevation(10);
-        popupWindow.setOutsideTouchable(false);
-        popupWindow.setAnimationStyle(R.style.Animation_AppCompat_Dialog);
-        popupWindow.showAtLocation(view, Gravity.CENTER, 0, 0);
-
-        // GTIN SCANNER + SUPPORT ELEMENTS
-        EditText textGTIN = view.findViewById(R.id.entry_article_gtin);
-
-        CodeScannerView gtinScannerView = view.findViewById(R.id.codescanner_gtin);
-        CodeScanner gtinCodeScanner = new CodeScanner(this, gtinScannerView);
-
-        // TEXT ELEMENTS
-        EditText textQTY = view.findViewById(R.id.entry_article_qty);
-        TextView textArticleList = view.findViewById(R.id.text_article_list);
+        // SHOW VIS
+        articleDialogIsVisible = true;
+        articleDialogLayout.setVisibility(View.VISIBLE);
+        darkOverlay.setVisibility(View.VISIBLE);
         textQTY.setText("1");
 
-        // BUTTONS
-        Button scanButton = view.findViewById(R.id.btn_scan_gtin);
-        Button cancelButton = view.findViewById(R.id.extra_sscc_btn_cancel);
-        Button saveButton = view.findViewById(R.id.extra_sscc_button_save);
-        Button addButton = view.findViewById(R.id.btn_add_article);
-        CheckBox checkHighRisk = view.findViewById(R.id.cb_HR);
 
-        // CODE SCANNER
-        gtinCodeScanner.setDecodeCallback(result -> runOnUiThread(() -> {
-            textGTIN.setText(result.getText());
-            gtinCodeScanner.stopPreview();
-            gtinScannerView.setVisibility(View.GONE);
-            scanButton.setText(R.string.scan);
-            doHaptics(H_NORMAL);
-        }));
-
-        // SCAN BUTTON
-        scanButton.setOnClickListener(view1 -> {
-            if (gtinCodeScanner.isPreviewActive()) {
-                gtinCodeScanner.stopPreview();
-                gtinScannerView.setVisibility(View.GONE);
-                scanButton.setText(R.string.scan);
-            } else {
-                gtinScannerView.setVisibility(View.VISIBLE);
-                gtinCodeScanner.startPreview();
-                scanButton.setText(R.string.stop);
-            }
-        });
-
-        // CANCEL BUTTON + DISMISSAL
-        cancelButton.setOnClickListener(view12 -> {
-            if (gtinCodeScanner.isPreviewActive()) {
-                gtinCodeScanner.stopPreview();
-                gtinScannerView.setVisibility(View.GONE);
-            }
-            darkenOverlay.setVisibility(View.GONE);
-            popupWindow.dismiss();
-        });
-
-        popupWindow.setOnDismissListener(() -> {
-            if (gtinCodeScanner.isPreviewActive()) {
-                gtinCodeScanner.stopPreview();
-                gtinScannerView.setVisibility(View.GONE);
-            }
-            darkenOverlay.setVisibility(View.GONE);
-            popupWindow.dismiss();
-        });
 
         // SSCC CREATION
         ArrayList<Backend.Article> articleList = new ArrayList<>();
@@ -321,7 +286,7 @@ public class ScannerActivity extends AppCompatActivity {
             }
         });
 
-        saveButton.setOnClickListener(view13 -> {
+        articleSaveButton.setOnClickListener(view13 -> {
             Backend.SSCC newSSCC = new Backend.SSCC();
             newSSCC.ssccID = barcode;
             newSSCC.unknown = true;
@@ -335,12 +300,12 @@ public class ScannerActivity extends AppCompatActivity {
             Backend.xdManifest.ssccList.add(newSSCC);
             doDataRefresh();
 
-            if (gtinCodeScanner.isPreviewActive()) {
-                gtinCodeScanner.stopPreview();
-                gtinScannerView.setVisibility(View.GONE);
+            if (codeScanner.isPreviewActive()) {
+                closeCameraInterface();
             }
-            darkenOverlay.setVisibility(View.GONE);
-            popupWindow.dismiss();
+            articleDialogIsVisible = false;
+            articleDialogLayout.setVisibility(View.GONE);
+            darkOverlay.setVisibility(View.GONE);
         });
     }
 

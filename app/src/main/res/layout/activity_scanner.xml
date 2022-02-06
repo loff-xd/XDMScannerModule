@@ -7,6 +7,7 @@
     tools:context=".ScannerActivity">
 
     <LinearLayout
+        android:id="@+id/linearLayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
@@ -86,24 +87,6 @@
 
     </LinearLayout>
 
-    <com.budiyev.android.codescanner.CodeScannerView
-        android:id="@+id/codeScanner"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="gone"
-        app:autoFocusButtonColor="@android:color/white"
-        app:autoFocusButtonVisible="true"
-        app:flashButtonColor="@android:color/white"
-        app:flashButtonVisible="true"
-        app:frameAspectRatioHeight="1"
-        app:frameAspectRatioWidth="2"
-        app:frameColor="@android:color/white"
-        app:frameCornersRadius="6dp"
-        app:frameCornersSize="32dp"
-        app:frameSize="0.9">
-
-    </com.budiyev.android.codescanner.CodeScannerView>
-
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabScan"
         android:layout_width="wrap_content"
@@ -121,21 +104,6 @@
         app:srcCompat="@android:drawable/ic_menu_camera"
         tools:ignore="SpeakableTextPresentCheck,ImageContrastCheck" />
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabCancel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"
-        android:clickable="true"
-        android:contentDescription="@android:string/cancel"
-        android:visibility="invisible"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:srcCompat="@android:drawable/ic_menu_close_clear_cancel"
-        tools:ignore="SpeakableTextPresentCheck" />
-
     <View
         android:id="@+id/view_darken_overlay"
         android:layout_width="match_parent"
@@ -147,5 +115,182 @@
         android:visibility="gone"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/container_new_article"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="?android:attr/colorBackground"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@+id/linearLayout"
+        app:layout_constraintEnd_toEndOf="@+id/linearLayout"
+        app:layout_constraintStart_toStartOf="@+id/linearLayout"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.3">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/tb_create_carton"
+            android:layout_width="392dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0"
+            android:background="?attr/colorPrimary"
+            android:minHeight="?attr/actionBarSize"
+            android:theme="?attr/actionBarTheme"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:title="Create Extra SSCC" />
+
+        <Button
+            android:id="@+id/extra_sscc_button_save"
+            android:layout_width="72dp"
+            android:layout_height="0dp"
+            android:gravity="center"
+            app:icon="@android:drawable/ic_menu_save"
+            app:layout_constraintBottom_toBottomOf="@+id/tb_create_carton"
+            app:layout_constraintEnd_toEndOf="@id/tb_create_carton"
+            app:layout_constraintTop_toTopOf="@+id/tb_create_carton"
+            tools:ignore="SpeakableTextPresentCheck" />
+
+        <EditText
+            android:id="@+id/entry_article_gtin"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:layout_marginTop="4dp"
+            android:defaultFocusHighlightEnabled="true"
+            android:ems="14"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:focusedByDefault="true"
+            android:hint="@string/gtin"
+            android:importantForAutofill="no"
+            android:inputType="number"
+            android:minHeight="48dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tb_create_carton"
+            tools:ignore="SpeakableTextPresentCheck" />
+
+        <Button
+            android:id="@+id/btn_scan_gtin"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_marginStart="4dp"
+            android:text="@string/scan"
+            app:layout_constraintLeft_toRightOf="@id/entry_article_gtin"
+            app:layout_constraintTop_toTopOf="@+id/entry_article_gtin"
+            tools:ignore="TextContrastCheck,TouchTargetSizeCheck" />
+
+        <EditText
+            android:id="@+id/entry_article_qty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:layout_marginTop="8dp"
+            android:ems="4"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:hint="@string/qty"
+            android:importantForAutofill="no"
+            android:inputType="number"
+            android:minHeight="48dp"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/entry_article_gtin"
+            tools:ignore="SpeakableTextPresentCheck,TextContrastCheck" />
+
+        <Button
+            android:id="@+id/btn_add_article"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="0"
+            android:text="@string/add"
+            app:layout_constraintEnd_toEndOf="@+id/btn_scan_gtin"
+            app:layout_constraintTop_toTopOf="@+id/entry_article_qty"
+            tools:ignore="TextContrastCheck" />
+
+        <Button
+            android:id="@+id/extra_sscc_btn_cancel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="0"
+            android:text="@android:string/cancel"
+            app:layout_constraintEnd_toStartOf="@id/btn_add_article"
+            app:layout_constraintTop_toTopOf="@+id/entry_article_qty"
+            tools:ignore="TextContrastCheck" />
+
+        <CheckBox
+            android:id="@+id/cb_HR"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:text="@string/high_risk"
+            app:layout_constraintStart_toEndOf="@+id/entry_article_qty"
+            app:layout_constraintTop_toTopOf="@+id/entry_article_qty" />
+
+        <ScrollView
+            android:id="@+id/article_text_scrollview"
+            android:layout_width="0dp"
+            android:layout_height="256dp"
+            android:layout_marginStart="4dp"
+            android:layout_marginTop="8dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/entry_article_qty">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/text_article_list"
+                    android:layout_width="378dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:layout_weight="1"
+                    android:fontFamily="monospace"
+                    android:padding="8dp"
+                    android:textColor="?android:attr/textColorPrimary"
+                    android:textSize="16sp"
+                    tools:ignore="InefficientWeight" />
+            </LinearLayout>
+        </ScrollView>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <com.budiyev.android.codescanner.CodeScannerView
+        android:id="@+id/codeScanner"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:elevation="100dp"
+        android:visibility="gone"
+        app:autoFocusButtonColor="@android:color/white"
+        app:autoFocusButtonVisible="true"
+        app:flashButtonColor="@android:color/white"
+        app:flashButtonVisible="true"
+        app:frameAspectRatioHeight="1"
+        app:frameAspectRatioWidth="2"
+        app:frameColor="@android:color/white"
+        app:frameCornersRadius="6dp"
+        app:frameCornersSize="32dp"
+        app:frameSize="0.9">
+
+    </com.budiyev.android.codescanner.CodeScannerView>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabCancel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:clickable="true"
+        android:contentDescription="@android:string/cancel"
+        android:elevation="105dp"
+        android:visibility="invisible"
+        app:elevation="105dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:srcCompat="@android:drawable/ic_menu_close_clear_cancel"
+        tools:ignore="SpeakableTextPresentCheck" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
