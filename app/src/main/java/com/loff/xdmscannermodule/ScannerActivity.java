@@ -172,7 +172,7 @@ public class ScannerActivity extends AppCompatActivity {
     private void checkBarcode(String barcode) {
         boolean matchFound = false;
         for (int i=0; i < Backend.xdManifest.ssccList.size(); i++) {
-            if (Backend.xdManifest.ssccList.get(i).ssccID.contains(barcode)) {
+            if (barcode.contains(Backend.xdManifest.ssccList.get(i).ssccID)) {
                 // ALREADY SCANNED
                 if (Backend.xdManifest.ssccList.get(i).scanned) {
                     matchFound = true;
