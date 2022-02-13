@@ -33,6 +33,7 @@
                 android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
 
         </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
     </LinearLayout>
 
 
@@ -45,6 +46,16 @@
         android:text="@string/begin_scanning"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        tools:ignore="TextContrastCheck" />
+
+    <Button
+        android:id="@+id/btn_sync"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="4dp"
+        android:text="@string/sync"
+        app:layout_constraintEnd_toStartOf="@+id/btn_begin_scanning"
+        app:layout_constraintTop_toTopOf="@+id/btn_begin_scanning"
         tools:ignore="TextContrastCheck" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

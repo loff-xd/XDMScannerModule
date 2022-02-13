@@ -1,5 +1,7 @@
 package com.loff.xdmscannermodule;
 
+import androidx.annotation.NonNull;
+
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -10,12 +12,10 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.Writer;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 
 public class Backend {
-    public static XDManifest xdManifest;
+    public static ArrayList<XDManifest> manifests = new ArrayList<>();
+    public static XDManifest selectedManifest;
     public static File xdtMobileJsonFile = null;
 
     public static class SSCC {
@@ -24,6 +24,9 @@ public class Backend {
         Boolean unknown = false;
         String description = "";
         Boolean highRisk = false;
+        String scannedInManifest;
+        String dilStatus;
+        String dilComment;
         ArrayList<Article> articles = new ArrayList<>();
     }
 
@@ -33,103 +36,132 @@ public class Backend {
         String GTIN;
         int QTY;
         Boolean highRisk = false;
+        String dilStatus = "";
+        String dilComment = "";
+        int dilQTY = 0;
     }
 
     public static class XDManifest {
         String manifestID;
         String manifestDate;
+        String lastModified;
         ArrayList<SSCC> ssccList = new ArrayList<>();
     }
 
-    public static void exportJson(){
+    @NonNull
+    public static String exportJson() {
         try {
-            JSONObject json_out = new JSONObject();
+            JSONObject jsonOutput = new JSONObject();
+            JSONArray newManifests = new JSONArray();
 
-            JSONObject json_manifest = new JSONObject();
-            json_manifest.put("Manifest ID", xdManifest.manifestID);
-            json_manifest.put("Import Date", xdManifest.manifestDate);
+            for (int i = 0; i < manifests.size(); i++) {
 
-            JSONArray json_sscc_array = new JSONArray();
+                JSONObject newManifest = new JSONObject();
+                JSONArray newManifestSSCCs = new JSONArray();
+                newManifest.put("Manifest ID", manifests.get(i).manifestID);
+                newManifest.put("Import Date", manifests.get(i).manifestDate);
+                newManifest.put("Last Modified", manifests.get(i).lastModified);
 
-            for (int i = 0; i < xdManifest.ssccList.size(); i++){
+                for (int j = 0; j < manifests.get(i).ssccList.size(); j++) {
 
-                // ARTICLE LIST GEN
-                JSONArray json_article_array = new JSONArray();
-                for (int j=0; j < xdManifest.ssccList.get(i).articles.size(); j++){
+                    // ARTICLE LIST GEN
+                    JSONArray newSSCCArticles = new JSONArray();
+                    for (int k = 0; k < manifests.get(i).ssccList.get(j).articles.size(); k++) {
 
-                    json_article_array.put(new JSONObject()
-                    .put("Code", xdManifest.ssccList.get(i).articles.get(j).code)
-                    .put("Desc", xdManifest.ssccList.get(i).articles.get(j).desc)
-                    .put("GTIN", xdManifest.ssccList.get(i).articles.get(j).GTIN)
-                    .put("QTY", xdManifest.ssccList.get(i).articles.get(j).QTY)
-                    .put("is_HR", xdManifest.ssccList.get(i).articles.get(j).highRisk)
+                        newSSCCArticles.put(new JSONObject()
+                                .put("Code", manifests.get(i).ssccList.get(j).articles.get(k).code)
+                                .put("Desc", manifests.get(i).ssccList.get(j).articles.get(k).desc)
+                                .put("GTIN", manifests.get(i).ssccList.get(j).articles.get(k).GTIN)
+                                .put("QTY", manifests.get(i).ssccList.get(j).articles.get(k).QTY)
+                                .put("is_HR", manifests.get(i).ssccList.get(j).articles.get(k).highRisk)
+                                .put("DIL Status", manifests.get(i).ssccList.get(j).articles.get(k).dilStatus)
+                                .put("DIL Comment", manifests.get(i).ssccList.get(j).articles.get(k).dilComment)
+                                .put("DIL Qty", manifests.get(i).ssccList.get(j).articles.get(k).dilQTY)
+                        );
+
+                    }
+
+                    // SSCC GEN
+                    newManifestSSCCs.put(new JSONObject()
+                            .put("SSCC", manifests.get(i).ssccList.get(j).ssccID)
+                            .put("Scanned", manifests.get(i).ssccList.get(j).scanned)
+                            .put("Unknown", manifests.get(i).ssccList.get(j).unknown)
+                            .put("is_HR", manifests.get(i).ssccList.get(j).highRisk)
+                            .put("ScannedInManifest", manifests.get(i).ssccList.get(j).scannedInManifest)
+                            .put("DIL Status", manifests.get(i).ssccList.get(j).dilStatus)
+                            .put("DIL Comment", manifests.get(i).ssccList.get(j).dilComment)
+                            .put("Articles", newSSCCArticles)
                     );
-
                 }
 
-                // SSCC GEN
-                json_sscc_array.put(new JSONObject()
-                .put("SSCC", xdManifest.ssccList.get(i).ssccID)
-                .put("Scanned", xdManifest.ssccList.get(i).scanned)
-                .put("Unknown", xdManifest.ssccList.get(i).unknown)
-                .put("is_HR", xdManifest.ssccList.get(i).highRisk)
-                .put("Articles", json_article_array)
-                );
+                newManifest.put("SSCCs", newManifestSSCCs);
+                newManifests.put(newManifest);
             }
 
-            json_manifest.put("SSCCs", json_sscc_array);
-            json_out.put("Manifest", json_manifest);
+            jsonOutput.put("Manifests", newManifests);
 
             Writer writer = new BufferedWriter(new FileWriter(xdtMobileJsonFile));
-            writer.write(json_out.toString());
+            writer.write(jsonOutput.toString());
             writer.close();
 
-        } catch (Exception e){
-            System.out.println(Arrays.toString(e.getStackTrace()));
+            return jsonOutput.toString();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "";
         }
     }
 
-    public static boolean importJson(){
-        if (fsCheck()) {
-            StringBuilder json_str_in = new StringBuilder();
-            try {
-                BufferedReader bufferedReader = new BufferedReader(new FileReader(xdtMobileJsonFile));
-                String line;
+    public static boolean importJson(String json_string_in) {
 
-                while ((line = bufferedReader.readLine()) != null){
-                    json_str_in.append(line);
+        try {
+            JSONObject jsonIn = new JSONObject(json_string_in);
+            JSONArray jmanifests = jsonIn.getJSONArray("Manifests");
+
+
+            for (int i = 0; i < jmanifests.length(); i++) {
+                XDManifest newManifest = new XDManifest();
+                JSONObject jManifest = jmanifests.getJSONObject(i);
+
+                newManifest.manifestID = jManifest.getString("Manifest ID");
+                newManifest.manifestDate = jManifest.getString("Import Date");
+                if (jManifest.has("Last Modified")) {
+                    newManifest.lastModified = jManifest.getString("Last Modified");
+                } else {
+                    newManifest.lastModified = String.valueOf(System.currentTimeMillis());
                 }
+                JSONArray jSSCCs = jManifest.getJSONArray("SSCCs");
 
-                String result = json_str_in.toString();
-                xdManifest = null;
-                xdManifest = new XDManifest();
-
-                JSONObject Jmanifest = new JSONObject(result).getJSONObject("Manifest");
-                xdManifest.manifestID = Jmanifest.getString("Manifest ID");
-                xdManifest.manifestDate = Jmanifest.getString("Import Date");
-                JSONArray jSSCCs = Jmanifest.getJSONArray("SSCCs");
-
-                for (int i=0; i < jSSCCs.length(); i++){
+                for (int j = 0; j < jSSCCs.length(); j++) {
                     // SSCC READ
                     SSCC newSSCC = new SSCC();
-                    JSONObject jSSCC = jSSCCs.getJSONObject(i);
+                    JSONObject jSSCC = jSSCCs.getJSONObject(j);
 
                     newSSCC.ssccID = jSSCC.getString("SSCC");
                     newSSCC.highRisk = jSSCC.getBoolean("is_HR");
-                    if (jSSCC.has("Scanned")) { newSSCC.scanned = jSSCC.getBoolean("Scanned"); }
-                    if (jSSCC.has("Unknown")) { newSSCC.unknown = jSSCC.getBoolean("Unknown"); }
+                    if (jSSCC.has("Scanned")) {
+                        newSSCC.scanned = jSSCC.getBoolean("Scanned");
+                    }
+                    if (jSSCC.has("Unknown")) {
+                        newSSCC.unknown = jSSCC.getBoolean("Unknown");
+                    }
 
                     // SSCC ARTICLES READ
                     JSONArray articles = jSSCC.getJSONArray("Articles");
-                    for (int j=0; j < articles.length(); j++){
+                    for (int k = 0; k < articles.length(); k++) {
                         Article newArticle = new Article();
-                        JSONObject article = articles.getJSONObject(j);
+                        JSONObject article = articles.getJSONObject(k);
 
                         newArticle.code = article.getString("Code");
                         newArticle.desc = article.getString("Desc");
                         newArticle.GTIN = article.getString("GTIN");
                         newArticle.QTY = article.getInt("QTY");
                         newArticle.highRisk = article.getBoolean("is_HR");
+                        if (article.has("DIL Status")) {
+                            newArticle.dilStatus = article.getString("DIL Status");
+                            newArticle.dilComment = article.getString("DIL Comment");
+                            newArticle.dilQTY = article.getInt("DIL Qty");
+                        }
 
                         newSSCC.articles.add(newArticle);
                     }
@@ -140,30 +172,58 @@ public class Backend {
                         newSSCC.description = newSSCC.articles.get(0).desc;
                     }
 
-                    xdManifest.ssccList.add(newSSCC);
+                    newManifest.ssccList.add(newSSCC);
+
+                    // SORT THE NEW ARRAY
+                    newManifest.ssccList.sort((sscc, t1) -> {
+                        int ssccLF = Integer.parseInt(sscc.ssccID.substring(sscc.ssccID.length() - 4));
+                        int t1LF = Integer.parseInt(t1.ssccID.substring(t1.ssccID.length() - 4));
+                        return ssccLF - t1LF;
+                    });
+
+                }
+                manifests.add(newManifest);
+            }
+
+            manifests.sort((t1, t2) -> {
+                int t1LF = Integer.parseInt(t1.manifestID);
+                int t2LF = Integer.parseInt(t2.manifestID);
+                return t1LF - t2LF;
+            });
+
+            selectedManifest = manifests.get(manifests.size() - 1);
+            selectedManifest.lastModified = String.valueOf(System.currentTimeMillis());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
+    public static boolean importJsonFile() {
+        if (fsCheck()) {
+            StringBuilder json_str_in = new StringBuilder();
+            try {
+                BufferedReader bufferedReader = new BufferedReader(new FileReader(xdtMobileJsonFile));
+                String line;
+
+                while ((line = bufferedReader.readLine()) != null) {
+                    json_str_in.append(line);
                 }
 
-                // SORT THE NEW ARRAY
-                xdManifest.ssccList.sort((sscc, t1) -> {
-                    int ssccLF = Integer.parseInt(sscc.ssccID.substring(sscc.ssccID.length() - 4));
-                    int t1LF = Integer.parseInt(t1.ssccID.substring(t1.ssccID.length() - 4));
-                    return ssccLF - t1LF;
-                });
-
-
+                String result = json_str_in.toString();
+                return importJson(result);
             } catch (Exception e) {
                 e.printStackTrace();
                 return false;
             }
-
-            return true;
-
         } else {
             return false;
         }
     }
 
-    public static boolean fsCheck(){
+    public static boolean fsCheck() {
         if (xdtMobileJsonFile != null) {
             return xdtMobileJsonFile.exists();
         } else {

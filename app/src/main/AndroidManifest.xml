@@ -5,7 +5,8 @@
     <uses-feature android:name="android.hardware.camera.any" />
 
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:icon="@mipmap/ic_launcher"
@@ -15,8 +16,8 @@
         android:theme="@style/Theme.XDMScannerModule">
         <activity
             android:name=".MenuActivity"
-            android:theme="@style/Theme.XDMScannerModule.NoActionBar"
-            android:exported="true">
+            android:exported="true"
+            android:theme="@style/Theme.XDMScannerModule.NoActionBar">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -27,8 +28,12 @@
             android:name=".ScannerActivity"
             android:exported="true"
             android:label="@string/title_activity_camera_interface"
-            android:theme="@style/Theme.XDMScannerModule.NoActionBar">
-        </activity>
+            android:theme="@style/Theme.XDMScannerModule.NoActionBar" />
+        <activity
+            android:name=".SyncActivity"
+            android:exported="true"
+            android:label="@string/title_activity_camera_interface"
+            android:theme="@style/Theme.XDMScannerModule.NoActionBar" />
     </application>
 
 </manifest>

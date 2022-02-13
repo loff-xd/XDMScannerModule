@@ -41,8 +41,6 @@ public class ScannerActivity extends AppCompatActivity {
     private EditText textGTIN;
     private EditText textQTY;
     private TextView textArticleList;
-    private Button scanButton;
-    private Button cancelButton;
     private Button articleSaveButton;
     private Button addButton;
     private CheckBox checkHighRisk;
@@ -106,8 +104,8 @@ public class ScannerActivity extends AppCompatActivity {
         // ARTICLE WINDOW
         textQTY = findViewById(R.id.entry_article_qty);
         textArticleList = findViewById(R.id.text_article_list);
-        scanButton = findViewById(R.id.btn_scan_gtin);
-        cancelButton = findViewById(R.id.extra_sscc_btn_cancel);
+        Button scanButton = findViewById(R.id.btn_scan_gtin);
+        Button cancelButton = findViewById(R.id.extra_sscc_btn_cancel);
         articleSaveButton = findViewById(R.id.extra_sscc_button_save);
         addButton = findViewById(R.id.btn_add_article);
         checkHighRisk = findViewById(R.id.cb_HR);
@@ -125,7 +123,7 @@ public class ScannerActivity extends AppCompatActivity {
         // CREATE DATA LIST
         dataList = findViewById(R.id.tv_dataList);
         TextView tbText = findViewById(R.id.tb_text);
-        tbText.setText(String.format("MANIFEST: %s", Backend.xdManifest.manifestID));
+        tbText.setText(String.format("MANIFEST: %s", Backend.selectedManifest.manifestID));
         statusText = findViewById(R.id.tx_statusBar);
         doDataRefresh();
     }
@@ -171,10 +169,10 @@ public class ScannerActivity extends AppCompatActivity {
 
     private void checkBarcode(String barcode) {
         boolean matchFound = false;
-        for (int i=0; i < Backend.xdManifest.ssccList.size(); i++) {
-            if (barcode.contains(Backend.xdManifest.ssccList.get(i).ssccID)) {
+        for (int i=0; i < Backend.selectedManifest.ssccList.size(); i++) {
+            if (barcode.contains(Backend.selectedManifest.ssccList.get(i).ssccID)) {
                 // ALREADY SCANNED
-                if (Backend.xdManifest.ssccList.get(i).scanned) {
+                if (Backend.selectedManifest.ssccList.get(i).scanned) {
                     matchFound = true;
                     soundIDerror.start();
                     doHaptics(H_ERROR);
@@ -185,10 +183,10 @@ public class ScannerActivity extends AppCompatActivity {
                     break;
                 }
 
-                Backend.xdManifest.ssccList.get(i).scanned = true;
+                Backend.selectedManifest.ssccList.get(i).scanned = true;
 
                 // IS HIGH RISK
-                if (Backend.xdManifest.ssccList.get(i).highRisk) {
+                if (Backend.selectedManifest.ssccList.get(i).highRisk) {
                     soundIDwarn.start();
                     doHaptics(H_WARN);
                     statusText.setText(String.format("%s: HIGH-RISK", barcode));
@@ -227,17 +225,17 @@ public class ScannerActivity extends AppCompatActivity {
     // REFRESH SSCC LIST
     private void doDataRefresh(){
         StringBuilder dataText = new StringBuilder();
-        for (int i=0; i < Backend.xdManifest.ssccList.size(); i++) {
-            dataText.append(Backend.xdManifest.ssccList.get(i).ssccID.substring(Backend.xdManifest.ssccList.get(i).ssccID.length() - 4));
-            if (Backend.xdManifest.ssccList.get(i).scanned){dataText.append(" [███] [ ");} else {dataText.append(" [░░░] [ ");}
+        for (int i=0; i < Backend.selectedManifest.ssccList.size(); i++) {
+            dataText.append(Backend.selectedManifest.ssccList.get(i).ssccID.substring(Backend.selectedManifest.ssccList.get(i).ssccID.length() - 4));
+            if (Backend.selectedManifest.ssccList.get(i).scanned){dataText.append(" [███] [ ");} else {dataText.append(" [░░░] [ ");}
 
-            dataText.append(fixedLengthString(Backend.xdManifest.ssccList.get(i).ssccID, 18));
+            dataText.append(fixedLengthString(Backend.selectedManifest.ssccList.get(i).ssccID, 18));
             dataText.append(" ]\n");
-            dataText.append("     - ").append(Backend.xdManifest.ssccList.get(i).description);
-            if (Backend.xdManifest.ssccList.get(i).highRisk) {dataText.append("\n     - ").append("HIGH-RISK");}
+            dataText.append("     - ").append(Backend.selectedManifest.ssccList.get(i).description);
+            if (Backend.selectedManifest.ssccList.get(i).highRisk) {dataText.append("\n     - ").append("HIGH-RISK");}
             dataText.append("\n\n");
         }
-
+        Backend.selectedManifest.lastModified = String.valueOf(System.currentTimeMillis());
         dataList.setText(dataText.toString());
     }
 
@@ -297,7 +295,7 @@ public class ScannerActivity extends AppCompatActivity {
                 if (articleList.get(i).highRisk) { newSSCC.highRisk = true; }
             }
             newSSCC.articles = articleList;
-            Backend.xdManifest.ssccList.add(newSSCC);
+            Backend.selectedManifest.ssccList.add(newSSCC);
             doDataRefresh();
 
             if (codeScanner.isPreviewActive()) {

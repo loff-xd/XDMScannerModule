@@ -18,6 +18,7 @@ import java.util.concurrent.Executor;
 public class MenuActivity extends AppCompatActivity {
 
     Button btnBeginScanning;
+    Button btnSync;
     TextView txtStatusText;
     SwipeRefreshLayout refreshLayout;
 
@@ -34,6 +35,7 @@ public class MenuActivity extends AppCompatActivity {
         Backend.xdtMobileJsonFile = new File(this.getExternalFilesDir(null), getString(R.string.xdt_data_file));
 
         btnBeginScanning = findViewById(R.id.btn_begin_scanning);
+        btnSync = findViewById(R.id.btn_sync);
         txtStatusText = findViewById(R.id.txt_status_text);
         refreshLayout = findViewById(R.id.refresh_layout);
 
@@ -45,12 +47,15 @@ public class MenuActivity extends AppCompatActivity {
 
         // PULL TO REFRESH
         refreshLayout.setOnRefreshListener(this::doBackendLoad);
+
+        // SYNC BUTTON
+        btnSync.setOnClickListener(view -> startActivity(new Intent(MenuActivity.this, SyncActivity.class)));
     }
 
     @Override
     protected void onResume() {
-        super.onResume();
         doBackendLoad();
+        super.onResume();
     }
 
     private void doBackendLoad(){
@@ -58,20 +63,20 @@ public class MenuActivity extends AppCompatActivity {
         IORunner.execute(() -> {
             refreshLayout.setRefreshing(true);
 
-            if (Backend.importJson()) {
+            if (Backend.importJsonFile()) {
                 int scannedCount = 0;
                 int unknownCount = 0;
                 int hrCount = 0;
-                for (int i=0; i<Backend.xdManifest.ssccList.size(); i++){
-                    if (Backend.xdManifest.ssccList.get(i).scanned) { scannedCount++; }
-                    if (Backend.xdManifest.ssccList.get(i).unknown) { unknownCount++; }
-                    if (Backend.xdManifest.ssccList.get(i).highRisk) { hrCount++; }
+                for (int i=0; i<Backend.selectedManifest.ssccList.size(); i++){
+                    if (Backend.selectedManifest.ssccList.get(i).scanned) { scannedCount++; }
+                    if (Backend.selectedManifest.ssccList.get(i).unknown) { unknownCount++; }
+                    if (Backend.selectedManifest.ssccList.get(i).highRisk) { hrCount++; }
                 }
 
                 String sb = "Target Manifest: " +
-                        Backend.xdManifest.manifestID +
+                        Backend.selectedManifest.manifestID +
                         "\n\nSSCCs: " +
-                        Backend.xdManifest.ssccList.size() +
+                        Backend.selectedManifest.ssccList.size() +
                         " (Scanned: " + scannedCount + ")" +
                         " (Extras: " + unknownCount + ")" +
                         "\n\nHigh-Risk SSCCs: " + hrCount;
@@ -81,7 +86,6 @@ public class MenuActivity extends AppCompatActivity {
             } else {
                 btnBeginScanning.setEnabled(false);
                 txtStatusText.setText(R.string.jsonImportError);
-                txtStatusText.append(Backend.xdtMobileJsonFile.getAbsolutePath());
             }
 
             refreshLayout.setRefreshing(false);
