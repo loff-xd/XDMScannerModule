@@ -10,6 +10,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
 
@@ -46,6 +47,17 @@ public class Backend {
         String manifestDate;
         String lastModified;
         ArrayList<SSCC> ssccList = new ArrayList<>();
+    }
+
+    public static void exportJsonFile() {
+        Writer writer;
+        try {
+            writer = new BufferedWriter(new FileWriter(xdtMobileJsonFile));
+            writer.write(exportJson());
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @NonNull
@@ -100,10 +112,6 @@ public class Backend {
 
             jsonOutput.put("Manifests", newManifests);
 
-            Writer writer = new BufferedWriter(new FileWriter(xdtMobileJsonFile));
-            writer.write(jsonOutput.toString());
-            writer.close();
-
             return jsonOutput.toString();
 
         } catch (Exception e) {
@@ -117,6 +125,7 @@ public class Backend {
         try {
             JSONObject jsonIn = new JSONObject(json_string_in);
             JSONArray jmanifests = jsonIn.getJSONArray("Manifests");
+            manifests.clear();
 
 
             for (int i = 0; i < jmanifests.length(); i++) {
@@ -194,11 +203,12 @@ public class Backend {
             selectedManifest = manifests.get(manifests.size() - 1);
             selectedManifest.lastModified = String.valueOf(System.currentTimeMillis());
 
+            return true;
+
         } catch (Exception e) {
             e.printStackTrace();
             return false;
         }
-        return true;
     }
 
     public static boolean importJsonFile() {

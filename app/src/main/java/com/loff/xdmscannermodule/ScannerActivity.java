@@ -240,7 +240,7 @@ public class ScannerActivity extends AppCompatActivity {
     }
 
     private void doSaveClose(){
-        Backend.exportJson();
+        Backend.exportJsonFile();
         this.finish();
     }
 

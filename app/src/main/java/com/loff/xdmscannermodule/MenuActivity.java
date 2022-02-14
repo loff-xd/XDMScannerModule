@@ -79,7 +79,8 @@ public class MenuActivity extends AppCompatActivity {
                         Backend.selectedManifest.ssccList.size() +
                         " (Scanned: " + scannedCount + ")" +
                         " (Extras: " + unknownCount + ")" +
-                        "\n\nHigh-Risk SSCCs: " + hrCount;
+                        "\n\nHigh-Risk SSCCs: " + hrCount +
+                        "\n\nTotal Manifests: " + Backend.manifests.size();
                 txtStatusText.setText(sb);
                 btnBeginScanning.setEnabled(true);
                 if (scannedCount > 0) {btnBeginScanning.setText(R.string.resume_scanning);}
