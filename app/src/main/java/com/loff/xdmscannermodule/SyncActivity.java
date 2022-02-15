@@ -1,17 +1,12 @@
 package com.loff.xdmscannermodule;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-
-import android.Manifest;
-import android.content.pm.PackageManager;
+import android.content.Context;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.text.format.Formatter;
 import android.util.Log;
 import android.widget.TextView;
-
-import com.budiyev.android.codescanner.CodeScanner;
-import com.budiyev.android.codescanner.CodeScannerView;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -19,18 +14,14 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.net.Socket;
 
 public class SyncActivity extends AppCompatActivity {
 
     TextView syncStatus;
     String statusText = "";
-    String SERVER_IP = "";
-    int PORT = 0;
-
-    CodeScannerView scannerView;
-    CodeScanner codeScanner;
+    int PORT = 7700;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,29 +31,7 @@ public class SyncActivity extends AppCompatActivity {
         syncStatus = findViewById(R.id.text_sync_status);
         statusUpdate(String.valueOf(System.currentTimeMillis()));
 
-        // CODE SCANNER
-        scannerView = findViewById(R.id.qrScanner);
-        codeScanner = new CodeScanner(this, scannerView);
-        codeScanner.setDecodeCallback(result -> runOnUiThread(() -> {
-            decodeQR(result.getText());
-            codeScanner.stopPreview();
-        }));
-
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            codeScanner.startPreview();
-
-        } else {
-            ActivityCompat.requestPermissions(SyncActivity.this, new String[] {Manifest.permission.CAMERA}, 5);
-            this.finish();
-        }
-    }
-
-    public void decodeQR(String barcode) {
-        String[] connectionDetails = barcode.split(";");
-
-        SERVER_IP = connectionDetails[0];
-        PORT = Integer.parseInt(connectionDetails[1]);
-
+        // NETCODE
         new Thread(new netExchanger()).start();
     }
 
@@ -70,9 +39,18 @@ public class SyncActivity extends AppCompatActivity {
         @Override
         public void run() {
             statusUpdate("\nSync Started.");
-            Socket socket = new Socket();
+            ServerSocket serverSocket;
+
+            Context context = getApplicationContext();
+            WifiManager wm = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+            String ip = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
+            statusUpdate("\n" + ip);
+            statusUpdate("\nPort: " + PORT);
+
             try {
-                socket.connect(new InetSocketAddress(SERVER_IP, PORT), 10000);
+                serverSocket = new ServerSocket(PORT);
+                Socket socket = serverSocket.accept();
+
                 BufferedReader data_in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 Writer data_out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 
@@ -93,6 +71,7 @@ public class SyncActivity extends AppCompatActivity {
                 Log.d("DATA_OUT", "Sent bytes: " + Backend.exportJson().length());
 
                 socket.close();
+                serverSocket.close();
 
                 statusUpdate("\nProcessing...");
                 if (Backend.importJson(data)) {
@@ -120,8 +99,6 @@ public class SyncActivity extends AppCompatActivity {
     }
 
     private void closeActivity() {
-        codeScanner.releaseResources();
-        codeScanner = null;
         this.finish();
     }
 }
