@@ -6,38 +6,30 @@
     android:layout_height="match_parent"
     tools:context=".SyncActivity">
 
+    <TextView
+        android:id="@+id/text_ip_addr"
+        android:layout_width="match_parent"
+        android:layout_height="256dp"
+        android:paddingTop="96dp"
+        android:textAlignment="center"
+        android:textSize="48sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
         android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <com.budiyev.android.codescanner.CodeScannerView
-            android:id="@+id/qrScanner"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_weight="3"
-            android:elevation="100dp"
-            app:autoFocusButtonColor="@android:color/white"
-            app:autoFocusButtonVisible="true"
-            app:flashButtonColor="@android:color/white"
-            app:flashButtonVisible="true"
-            app:frameAspectRatioHeight="2"
-            app:frameAspectRatioWidth="2"
-            app:frameColor="@android:color/white"
-            app:frameCornersRadius="6dp"
-            app:frameCornersSize="32dp"
-            app:frameSize="0.9">
-
-        </com.budiyev.android.codescanner.CodeScannerView>
+        app:layout_constraintTop_toBottomOf="@+id/text_ip_addr">
 
         <TextView
             android:id="@+id/text_sync_status"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_weight="2"
-            android:padding="16dp" />
+            android:padding="32dp"
+            android:textSize="24sp" />
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

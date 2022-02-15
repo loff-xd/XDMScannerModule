@@ -3,6 +3,7 @@ package com.loff.xdmscannermodule;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
 import android.os.Bundle;
@@ -135,16 +136,25 @@ public class ScannerActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        closeCameraInterface();
+    public void onBackPressed() {
+        new AlertDialog.Builder(this)
+                .setMessage("Are you sure you want to exit?")
+                .setCancelable(false)
+                .setPositiveButton("Yes", (dialog, id) -> doSaveClose())
+                .setNegativeButton("No", null)
+                .show();
+    }
 
+    @Override
+    protected void onDestroy() {
+        closeCameraInterface();
         soundIDbeep.release();
         soundIDerror.release();
         soundIDwarn.release();
         soundIDbeep = null;
         soundIDerror = null;
         soundIDwarn = null;
+        super.onDestroy();
     }
 
     private void openCameraInterface() {

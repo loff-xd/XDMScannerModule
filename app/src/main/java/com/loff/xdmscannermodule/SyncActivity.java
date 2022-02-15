@@ -20,6 +20,7 @@ import java.net.Socket;
 public class SyncActivity extends AppCompatActivity {
 
     TextView syncStatus;
+    TextView ipText;
     String statusText = "";
     int PORT = 7700;
 
@@ -29,7 +30,7 @@ public class SyncActivity extends AppCompatActivity {
         setContentView(R.layout.activity_sync);
 
         syncStatus = findViewById(R.id.text_sync_status);
-        statusUpdate(String.valueOf(System.currentTimeMillis()));
+        ipText = findViewById(R.id.text_ip_addr);
 
         // NETCODE
         new Thread(new netExchanger()).start();
@@ -38,14 +39,15 @@ public class SyncActivity extends AppCompatActivity {
     class netExchanger implements Runnable{
         @Override
         public void run() {
-            statusUpdate("\nSync Started.");
+            statusUpdate("\nWaiting for connection.");
             ServerSocket serverSocket;
 
             Context context = getApplicationContext();
             WifiManager wm = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
-            String ip = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
-            statusUpdate("\n" + ip);
+            @SuppressWarnings("deprecation") String ip = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
+            statusUpdate("\nIP: " + ip);
             statusUpdate("\nPort: " + PORT);
+            ipText.setText(ip);
 
             try {
                 serverSocket = new ServerSocket(PORT);
@@ -54,15 +56,23 @@ public class SyncActivity extends AppCompatActivity {
                 BufferedReader data_in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 Writer data_out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 
-                // DATA IN - LEN
-                String len = data_in.readLine();
-                Log.d("DATA_IN", "Received bytes: " + len);
+                // TIMESTAMP IN
+                String timestamp_in = data_in.readLine();
 
                 // DATA IN
                 String data = data_in.readLine();
+                statusUpdate("\nRecveived bytes: " + data.length());
 
-
-                statusUpdate("Recveived bytes: " + data.length());
+                // TIMESTAMP OUT
+                String timestamp_out = "0";
+                for (int i=0; i<Backend.manifests.size(); i++) {
+                    if (Long.parseLong(Backend.manifests.get(i).lastModified) > Long.parseLong(timestamp_out)) {
+                        timestamp_out = Backend.manifests.get(i).lastModified;
+                    }
+                }
+                data_out.append(timestamp_out);
+                data_out.append("\n");
+                data_out.flush();
 
                 // DATA OUT
                 data_out.append(Backend.exportJson());
@@ -70,21 +80,31 @@ public class SyncActivity extends AppCompatActivity {
                 data_out.flush();
                 Log.d("DATA_OUT", "Sent bytes: " + Backend.exportJson().length());
 
+                // DATA CLOSE
                 socket.close();
                 serverSocket.close();
 
                 statusUpdate("\nProcessing...");
-                if (Backend.importJson(data)) {
-                    statusUpdate("\nSuccessfuly updated.");
-                    Backend.exportJsonFile();
-                    closeActivity();
+
+                Log.d("SYNC", timestamp_in + " > " + timestamp_out);
+
+                if (Long.parseLong(timestamp_in) > Long.parseLong(timestamp_out)) {
+                    if (Backend.importJson(data)) {
+                        Log.d("SYNC", "DOING UPDATE");
+                        statusUpdate("\nSuccessfuly updated.");
+                        Backend.exportJsonFile();
+                        closeActivity();
+                    } else {
+                        statusUpdate("\nJSON import failed.");
+                    }
                 } else {
-                    statusUpdate("\nJSON import failed");
+                    Log.d("SYNC", "UP TO DATE");
+                    statusUpdate("\nNo need for update.");
                 }
 
             } catch (IOException e) {
                 e.printStackTrace();
-                statusUpdate("\nSync failed");
+                statusUpdate("\nSync failed.");
             }
         }
 
@@ -99,6 +119,11 @@ public class SyncActivity extends AppCompatActivity {
     }
 
     private void closeActivity() {
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         this.finish();
     }
 }

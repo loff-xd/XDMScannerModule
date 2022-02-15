@@ -16,6 +16,7 @@ import java.util.ArrayList;
 
 public class Backend {
     public static ArrayList<XDManifest> manifests = new ArrayList<>();
+    public static ArrayList<String> manifest_list;
     public static XDManifest selectedManifest;
     public static File xdtMobileJsonFile = null;
 
@@ -62,6 +63,16 @@ public class Backend {
 
     @NonNull
     public static String exportJson() {
+        // WRITE SELECTED TO ARRAY
+        for (int i=0; i<manifests.size(); i++) {
+            if (manifests.get(i).manifestID.equals(selectedManifest.manifestID)) {
+                manifests.remove(i);
+                manifests.add(selectedManifest);
+                break;
+            }
+        }
+
+        // WRITE TO JSON
         try {
             JSONObject jsonOutput = new JSONObject();
             JSONArray newManifests = new JSONArray();
@@ -200,6 +211,11 @@ public class Backend {
                 return t1LF - t2LF;
             });
 
+            manifest_list = new ArrayList<>();
+            for (int i=0; i<manifests.size(); i++) {
+                manifest_list.add(manifests.get(i).manifestID);
+            }
+
             selectedManifest = manifests.get(manifests.size() - 1);
             selectedManifest.lastModified = String.valueOf(System.currentTimeMillis());
 
@@ -238,6 +254,15 @@ public class Backend {
             return xdtMobileJsonFile.exists();
         } else {
             return false;
+        }
+    }
+
+    public static void changeManifest(String selectedManifestID){
+        for (int i=0; i<manifests.size(); i++){
+            if (manifests.get(i).manifestID.equals(selectedManifestID)){
+                selectedManifest = manifests.get(i);
+                break;
+            }
         }
     }
 

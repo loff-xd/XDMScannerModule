@@ -18,4 +18,5 @@
     <string name="stop">Stop</string>
     <string name="high_risk">High-Risk</string>
     <string name="sync">Sync</string>
+    <string name="selected_manifest">Selected Manifest:</string>
 </resources>
