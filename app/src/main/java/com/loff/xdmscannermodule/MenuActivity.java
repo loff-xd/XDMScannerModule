@@ -114,27 +114,40 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
     public void interfaceUpdate(){
-        int scannedCount = 0;
-        int unknownCount = 0;
-        int hrCount = 0;
-        for (int i=0; i<Backend.selectedManifest.ssccList.size(); i++){
-            if (Backend.selectedManifest.ssccList.get(i).scanned) { scannedCount++; }
-            if (Backend.selectedManifest.ssccList.get(i).unknown) { unknownCount++; }
-            if (Backend.selectedManifest.ssccList.get(i).highRisk) { hrCount++; }
-        }
+        if (Backend.selectedManifest != null){
+            int scannedCount = 0;
+            int unknownCount = 0;
+            int hrCount = 0;
+            for (int i = 0; i < Backend.selectedManifest.ssccList.size(); i++) {
+                if (Backend.selectedManifest.ssccList.get(i).scanned) {
+                    scannedCount++;
+                }
+                if (Backend.selectedManifest.ssccList.get(i).unknown) {
+                    unknownCount++;
+                }
+                if (Backend.selectedManifest.ssccList.get(i).highRisk) {
+                    hrCount++;
+                }
+            }
 
-        xdManifestArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, Backend.manifest_list);
-        for (int i=0; i<Backend.manifest_list.size(); i++){
-            if (Backend.selectedManifest.manifestID.equals(Backend.manifest_list.get(i))) { manifestSpinner.setSelection(i); break; }
-        }
+            xdManifestArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, Backend.manifest_list);
+            for (int i = 0; i < Backend.manifest_list.size(); i++) {
+                if (Backend.selectedManifest.manifestID.equals(Backend.manifest_list.get(i))) {
+                    manifestSpinner.setSelection(i);
+                    break;
+                }
+            }
 
-        String sb = "SSCCs: " +
-                Backend.selectedManifest.ssccList.size() +
-                " (Scanned: " + scannedCount + ")" +
-                " (Extras: " + unknownCount + ")" +
-                "\n\nHigh-Risk SSCCs: " + hrCount +
-                "\n\nTotal Manifests: " + Backend.manifests.size();
-        txtStatusText.setText(sb);
-        if (scannedCount > 0) {btnBeginScanning.setText(R.string.resume_scanning);}
+            String sb = "SSCCs: " +
+                    Backend.selectedManifest.ssccList.size() +
+                    " (Scanned: " + scannedCount + ")" +
+                    " (Extras: " + unknownCount + ")" +
+                    "\n\nHigh-Risk SSCCs: " + hrCount +
+                    "\n\nTotal Manifests: " + Backend.manifests.size();
+            txtStatusText.setText(sb);
+            if (scannedCount > 0) {
+                btnBeginScanning.setText(R.string.resume_scanning);
+            }
+        }
     }
 }
