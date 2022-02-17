@@ -1,6 +1,8 @@
 package com.loff.xdmscannermodule;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+
 import android.content.Context;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -39,14 +41,13 @@ public class SyncActivity extends AppCompatActivity {
     class netExchanger implements Runnable{
         @Override
         public void run() {
-            statusUpdate("\nWaiting for connection.");
+            statusUpdate("Waiting for connection.");
             ServerSocket serverSocket;
 
             Context context = getApplicationContext();
             WifiManager wm = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
             @SuppressWarnings("deprecation") String ip = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
             statusUpdate("\nIP: " + ip);
-            statusUpdate("\nPort: " + PORT);
             ipText.setText(ip);
 
             try {
@@ -92,22 +93,31 @@ public class SyncActivity extends AppCompatActivity {
                     if (Backend.importJson(data)) {
                         Log.d("SYNC", "DOING UPDATE");
                         statusUpdate("\nSuccessfuly updated.");
+                        setBG(ContextCompat.getColor(context, R.color.success_green));
                         Backend.exportJsonFile();
-                        closeActivity();
                     } else {
                         statusUpdate("\nJSON import failed.");
+                        setBG(ContextCompat.getColor(context, R.color.fail_red));
                     }
                 } else {
                     Log.d("SYNC", "UP TO DATE");
-                    statusUpdate("\nNo need for update.");
+                    statusUpdate("\nUp to date.");
+                    setBG(ContextCompat.getColor(context, R.color.success_green));
                 }
+                closeActivity();
 
             } catch (IOException e) {
                 e.printStackTrace();
                 statusUpdate("\nSync failed.");
+                setBG(ContextCompat.getColor(context, R.color.fail_red));
+                closeActivity();
             }
         }
 
+    }
+
+    private void setBG(int color) {
+        runOnUiThread(() -> findViewById(R.id.text_ip_addr).setBackgroundColor(color));
     }
 
     private void statusUpdate(String update){
@@ -120,7 +130,7 @@ public class SyncActivity extends AppCompatActivity {
 
     private void closeActivity() {
         try {
-            Thread.sleep(500);
+            Thread.sleep(2000);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

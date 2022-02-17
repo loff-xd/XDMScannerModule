@@ -12,4 +12,7 @@
     <color name="orange_200">#FFff9933</color>
     <color name="orange_500">#FFff8000</color>
     <color name="orange_700">#FFcc6600</color>
+
+    <color name="success_green">#FF58a16c</color>
+    <color name="fail_red">#FFc26a4f</color>
 </resources>

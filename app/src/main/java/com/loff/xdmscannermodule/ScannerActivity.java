@@ -3,7 +3,6 @@ package com.loff.xdmscannermodule;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.media.MediaPlayer;
 import android.os.Bundle;
@@ -33,8 +32,6 @@ public class ScannerActivity extends AppCompatActivity {
 
     private FloatingActionButton scanBarcodeFab;
     private FloatingActionButton cancelScanFab;
-    private CodeScannerView scannerView;
-    private CodeScanner codeScanner;
 
     private ConstraintLayout articleDialogLayout;
     private View darkOverlay;
@@ -45,6 +42,8 @@ public class ScannerActivity extends AppCompatActivity {
     private Button articleSaveButton;
     private Button addButton;
     private CheckBox checkHighRisk;
+    CodeScanner codeScanner;
+    CodeScannerView scannerView;
 
     private TextView dataList;
     private TextView statusText;
@@ -130,8 +129,8 @@ public class ScannerActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
+    protected void onStop() {
+        super.onStop();
         closeCameraInterface();
     }
 
@@ -178,6 +177,7 @@ public class ScannerActivity extends AppCompatActivity {
     }
 
     private void checkBarcode(String barcode) {
+        Context context = getApplicationContext();
         boolean matchFound = false;
         for (int i=0; i < Backend.selectedManifest.ssccList.size(); i++) {
             if (barcode.contains(Backend.selectedManifest.ssccList.get(i).ssccID)) {
@@ -186,6 +186,7 @@ public class ScannerActivity extends AppCompatActivity {
                     matchFound = true;
                     soundIDerror.start();
                     doHaptics(H_ERROR);
+                    setBG(ContextCompat.getColor(context, R.color.fail_red));
                     new AlertDialog.Builder(this)
                             .setMessage("SSCC already scanned.")
                             .setPositiveButton("Ok", null)
@@ -194,6 +195,7 @@ public class ScannerActivity extends AppCompatActivity {
                 }
 
                 Backend.selectedManifest.ssccList.get(i).scanned = true;
+                setBG(ContextCompat.getColor(context, R.color.success_green));
 
                 // IS HIGH RISK
                 if (Backend.selectedManifest.ssccList.get(i).highRisk) {
@@ -219,6 +221,7 @@ public class ScannerActivity extends AppCompatActivity {
         if (!matchFound){
             soundIDerror.start();
             doHaptics(H_ERROR);
+            setBG(ContextCompat.getColor(context, R.color.fail_red));
             statusText.setText(String.format("%s: UNKNOWN", barcode));
             new AlertDialog.Builder(this)
                     .setMessage("SSCC: " + barcode + " is not in the manifest.\nAdd as missing carton?")
@@ -250,6 +253,7 @@ public class ScannerActivity extends AppCompatActivity {
     }
 
     private void doSaveClose(){
+        Backend.selectedManifest.lastModified = String.valueOf(System.currentTimeMillis());
         Backend.exportJsonFile();
         this.finish();
     }
@@ -357,5 +361,9 @@ public class ScannerActivity extends AppCompatActivity {
                 HapticRunner.execute(normalHaptic);
                 break;
         }
+    }
+
+    private void setBG(int color) {
+        runOnUiThread(() -> findViewById(R.id.tx_statusBar).setBackgroundColor(color));
     }
 }

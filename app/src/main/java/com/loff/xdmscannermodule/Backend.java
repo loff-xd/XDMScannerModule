@@ -217,7 +217,6 @@ public class Backend {
             }
 
             selectedManifest = manifests.get(manifests.size() - 1);
-            selectedManifest.lastModified = String.valueOf(System.currentTimeMillis());
 
             return true;
 

@@ -23,7 +23,6 @@ import java.io.File;
 import java.util.concurrent.Executor;
 
 public class MenuActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener, View.OnTouchListener {
-
     Button btnBeginScanning;
     Button btnSync;
     TextView txtStatusText;
@@ -57,7 +56,7 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
         manifestSpinner = findViewById(R.id.spinner_mainfest_selector);
 
         // POPULATE TEXT FIELD
-        doBackendLoad();
+        //doBackendLoad();
 
         // PULL TO REFRESH
         refreshLayout.setOnRefreshListener(this::doBackendLoad);
@@ -71,9 +70,9 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
     @Override
-    protected void onResume() {
+    protected void onStart() {
+        super.onStart();
         doBackendLoad();
-        super.onResume();
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -96,18 +95,29 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
     public void onNothingSelected(AdapterView<?> adapterView) {
     }
 
-    private void doBackendLoad(){
+    public void doBackendLoad(){
+        Log.d("ACTION", "DO BACKEND LOAD");
         Executor IORunner = getMainExecutor();
         IORunner.execute(() -> {
             refreshLayout.setRefreshing(true);
 
             if (Backend.importJsonFile()) {
                 btnBeginScanning.setEnabled(true);
+
+                xdManifestArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, Backend.manifest_list);
+                manifestSpinner.setAdapter(xdManifestArrayAdapter);
+                for (int i = 0; i < Backend.manifest_list.size(); i++) {
+                    if (Backend.selectedManifest.manifestID.equals(Backend.manifest_list.get(i))) {
+                        manifestSpinner.setSelection(i);
+                        break;
+                    }
+                }
+
             } else {
                 btnBeginScanning.setEnabled(false);
                 txtStatusText.setText(R.string.jsonImportError);
             }
-            manifestSpinner.setAdapter(xdManifestArrayAdapter);
+
             interfaceUpdate();
             refreshLayout.setRefreshing(false);
         });
@@ -130,20 +140,15 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
                 }
             }
 
-            xdManifestArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, Backend.manifest_list);
-            for (int i = 0; i < Backend.manifest_list.size(); i++) {
-                if (Backend.selectedManifest.manifestID.equals(Backend.manifest_list.get(i))) {
-                    manifestSpinner.setSelection(i);
-                    break;
-                }
-            }
+            StringBuilder sb = new StringBuilder();
+            sb.append("Total Manifests Loaded: ").append(Backend.manifests.size());
+            sb.append("\n\n==================================");
 
-            String sb = "SSCCs: " +
-                    Backend.selectedManifest.ssccList.size() +
-                    " (Scanned: " + scannedCount + ")" +
-                    " (Extras: " + unknownCount + ")" +
-                    "\n\nHigh-Risk SSCCs: " + hrCount +
-                    "\n\nTotal Manifests: " + Backend.manifests.size();
+            sb.append("\n\nTageting Manifest: ").append(Backend.selectedManifest.manifestID);
+            sb.append("\n\nSSCCs: ").append(Backend.selectedManifest.ssccList.size());
+            sb.append(" (Scanned: ").append(scannedCount).append(")").append(" (Extras: ").append(unknownCount).append(")");
+            sb.append("\nHigh-Risk SSCCs: ").append(hrCount);
+
             txtStatusText.setText(sb);
             if (scannedCount > 0) {
                 btnBeginScanning.setText(R.string.resume_scanning);
