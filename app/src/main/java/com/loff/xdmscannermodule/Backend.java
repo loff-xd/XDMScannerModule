@@ -51,14 +51,16 @@ public class Backend {
     }
 
     public static void exportJsonFile() {
-        Writer writer;
-        try {
-            writer = new BufferedWriter(new FileWriter(xdtMobileJsonFile));
-            writer.write(exportJson());
-            writer.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        new Thread(() -> {
+            Writer writer;
+            try {
+                writer = new BufferedWriter(new FileWriter(xdtMobileJsonFile));
+                writer.write(exportJson());
+                writer.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 
     @NonNull

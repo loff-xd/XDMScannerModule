@@ -10,7 +10,6 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.AdapterView;
@@ -20,9 +19,9 @@ import android.widget.Spinner;
 import android.widget.TextView;
 
 import java.io.File;
-import java.util.concurrent.Executor;
 
 public class MenuActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener, View.OnTouchListener {
+
     Button btnBeginScanning;
     Button btnSync;
     TextView txtStatusText;
@@ -55,11 +54,11 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
         // MANIFEST SELECTOR
         manifestSpinner = findViewById(R.id.spinner_mainfest_selector);
 
-        // POPULATE TEXT FIELD
-        //doBackendLoad();
-
         // PULL TO REFRESH
         refreshLayout.setOnRefreshListener(this::doBackendLoad);
+
+        // LOAD BACKEND
+        doBackendLoad();
 
         // SYNC BUTTON
         btnSync.setOnClickListener(view -> startActivity(new Intent(MenuActivity.this, SyncActivity.class)));
@@ -67,12 +66,6 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
         // SPINNER ONCLICK
         manifestSpinner.setOnTouchListener(this);
         manifestSpinner.setOnItemSelectedListener(this);
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        doBackendLoad();
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -95,32 +88,29 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
     public void onNothingSelected(AdapterView<?> adapterView) {
     }
 
-    public void doBackendLoad(){
-        Log.d("ACTION", "DO BACKEND LOAD");
-        Executor IORunner = getMainExecutor();
-        IORunner.execute(() -> {
-            refreshLayout.setRefreshing(true);
+    @Override
+    public void onResume(){
+        interfaceUpdate();
+        super.onResume();
+    }
 
-            if (Backend.importJsonFile()) {
-                btnBeginScanning.setEnabled(true);
-
-                xdManifestArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, Backend.manifest_list);
-                manifestSpinner.setAdapter(xdManifestArrayAdapter);
-                for (int i = 0; i < Backend.manifest_list.size(); i++) {
-                    if (Backend.selectedManifest.manifestID.equals(Backend.manifest_list.get(i))) {
-                        manifestSpinner.setSelection(i);
-                        break;
-                    }
+    private void doBackendLoad(){
+        refreshLayout.setRefreshing(true);
+        new Thread(() -> {
+            boolean loadSuccess = Backend.importJsonFile();
+            runOnUiThread(() -> {
+                if (loadSuccess) {
+                    btnBeginScanning.setEnabled(true);
+                } else {
+                    btnBeginScanning.setEnabled(false);
+                    txtStatusText.setText(R.string.jsonImportError);
                 }
+                manifestSpinner.setAdapter(xdManifestArrayAdapter);
+                interfaceUpdate();
+                refreshLayout.setRefreshing(false);
+            });
 
-            } else {
-                btnBeginScanning.setEnabled(false);
-                txtStatusText.setText(R.string.jsonImportError);
-            }
-
-            interfaceUpdate();
-            refreshLayout.setRefreshing(false);
-        });
+        }).start();
     }
 
     public void interfaceUpdate(){
@@ -140,15 +130,20 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
                 }
             }
 
-            StringBuilder sb = new StringBuilder();
-            sb.append("Total Manifests Loaded: ").append(Backend.manifests.size());
-            sb.append("\n\n==================================");
+            xdManifestArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, Backend.manifest_list);
+            for (int i = 0; i < Backend.manifest_list.size(); i++) {
+                if (Backend.selectedManifest.manifestID.equals(Backend.manifest_list.get(i))) {
+                    manifestSpinner.setSelection(i);
+                    break;
+                }
+            }
 
-            sb.append("\n\nTageting Manifest: ").append(Backend.selectedManifest.manifestID);
-            sb.append("\n\nSSCCs: ").append(Backend.selectedManifest.ssccList.size());
-            sb.append(" (Scanned: ").append(scannedCount).append(")").append(" (Extras: ").append(unknownCount).append(")");
-            sb.append("\nHigh-Risk SSCCs: ").append(hrCount);
-
+            String sb = "SSCCs: " +
+                    Backend.selectedManifest.ssccList.size() +
+                    " (Scanned: " + scannedCount + ")" +
+                    " (Extras: " + unknownCount + ")" +
+                    "\n\nHigh-Risk SSCCs: " + hrCount +
+                    "\n\nTotal Manifests: " + Backend.manifests.size();
             txtStatusText.setText(sb);
             if (scannedCount > 0) {
                 btnBeginScanning.setText(R.string.resume_scanning);

@@ -237,19 +237,23 @@ public class ScannerActivity extends AppCompatActivity {
 
     // REFRESH SSCC LIST
     private void doDataRefresh(){
-        StringBuilder dataText = new StringBuilder();
-        for (int i=0; i < Backend.selectedManifest.ssccList.size(); i++) {
-            dataText.append(Backend.selectedManifest.ssccList.get(i).ssccID.substring(Backend.selectedManifest.ssccList.get(i).ssccID.length() - 4));
-            if (Backend.selectedManifest.ssccList.get(i).scanned){dataText.append(" [███] [ ");} else {dataText.append(" [░░░] [ ");}
+        new Thread(() -> {
+            StringBuilder dataText = new StringBuilder();
+            for (int i=0; i < Backend.selectedManifest.ssccList.size(); i++) {
+                dataText.append(Backend.selectedManifest.ssccList.get(i).ssccID.substring(Backend.selectedManifest.ssccList.get(i).ssccID.length() - 4));
+                if (Backend.selectedManifest.ssccList.get(i).scanned){dataText.append(" [███] [ ");} else {dataText.append(" [░░░] [ ");}
 
-            dataText.append(fixedLengthString(Backend.selectedManifest.ssccList.get(i).ssccID, 18));
-            dataText.append(" ]\n");
-            dataText.append("     - ").append(Backend.selectedManifest.ssccList.get(i).description);
-            if (Backend.selectedManifest.ssccList.get(i).highRisk) {dataText.append("\n     - ").append("HIGH-RISK");}
-            dataText.append("\n\n");
-        }
-        Backend.selectedManifest.lastModified = String.valueOf(System.currentTimeMillis());
-        dataList.setText(dataText.toString());
+                dataText.append(fixedLengthString(Backend.selectedManifest.ssccList.get(i).ssccID, 18));
+                dataText.append(" ]\n");
+                dataText.append("     - ").append(Backend.selectedManifest.ssccList.get(i).description);
+                if (Backend.selectedManifest.ssccList.get(i).highRisk) {dataText.append("\n     - ").append("HIGH-RISK");}
+                dataText.append("\n\n");
+            }
+            Backend.selectedManifest.lastModified = String.valueOf(System.currentTimeMillis());
+            dataList.setText(dataText.toString());
+        }).start();
+
+
     }
 
     private void doSaveClose(){
