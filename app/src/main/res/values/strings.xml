@@ -19,4 +19,5 @@
     <string name="high_risk">High-Risk</string>
     <string name="sync">Sync</string>
     <string name="selected_manifest">Select Manifest:</string>
+    <string name="force_scanner_copy">Force Scanner Copy</string>
 </resources>

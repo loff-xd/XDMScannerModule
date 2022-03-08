@@ -19,6 +19,7 @@ public class Backend {
     public static ArrayList<String> manifest_list;
     public static XDManifest selectedManifest;
     public static File xdtMobileJsonFile = null;
+    public static boolean IO_LOCK = false;
 
     public static class SSCC {
         String ssccID;
@@ -50,15 +51,18 @@ public class Backend {
         ArrayList<SSCC> ssccList = new ArrayList<>();
     }
 
-    public static void exportJsonFile() {
+    public static void exportJsonFile() { // TODO APP CLOSING SAFETY
         new Thread(() -> {
+            IO_LOCK = true;
             Writer writer;
             try {
                 writer = new BufferedWriter(new FileWriter(xdtMobileJsonFile));
                 writer.write(exportJson());
                 writer.close();
+                IO_LOCK = false;
             } catch (IOException e) {
                 e.printStackTrace();
+                IO_LOCK = false;
             }
         }).start();
     }
@@ -66,13 +70,7 @@ public class Backend {
     @NonNull
     public static String exportJson() {
         // WRITE SELECTED TO ARRAY
-        for (int i=0; i<manifests.size(); i++) {
-            if (manifests.get(i).manifestID.equals(selectedManifest.manifestID)) {
-                manifests.remove(i);
-                manifests.add(selectedManifest);
-                break;
-            }
-        }
+        syncSelectedManifestToDB();
 
         // WRITE TO JSON
         try {
@@ -133,7 +131,18 @@ public class Backend {
         }
     }
 
+    public static void syncSelectedManifestToDB() {
+        for (int i=0; i<manifests.size(); i++) {
+            if (manifests.get(i).manifestID.equals(selectedManifest.manifestID)) {
+                manifests.remove(i);
+                manifests.add(selectedManifest);
+                break;
+            }
+        }
+    }
+
     public static boolean importJson(String json_string_in) {
+
 
         try {
             JSONObject jsonIn = new JSONObject(json_string_in);
@@ -230,6 +239,15 @@ public class Backend {
 
     public static boolean importJsonFile() {
         if (fsCheck()) {
+
+            while (IO_LOCK) {
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
             StringBuilder json_str_in = new StringBuilder();
             try {
                 BufferedReader bufferedReader = new BufferedReader(new FileReader(xdtMobileJsonFile));

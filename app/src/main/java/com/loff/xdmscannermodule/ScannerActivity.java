@@ -1,6 +1,7 @@
 package com.loff.xdmscannermodule;
 
 import android.Manifest;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -42,6 +43,7 @@ public class ScannerActivity extends AppCompatActivity {
     private Button articleSaveButton;
     private Button addButton;
     private CheckBox checkHighRisk;
+    TextView tbText;
     CodeScanner codeScanner;
     CodeScannerView scannerView;
 
@@ -122,16 +124,16 @@ public class ScannerActivity extends AppCompatActivity {
 
         // CREATE DATA LIST
         dataList = findViewById(R.id.tv_dataList);
-        TextView tbText = findViewById(R.id.tb_text);
-        tbText.setText(String.format("MANIFEST: %s", Backend.selectedManifest.manifestID));
+        tbText = findViewById(R.id.tb_text);
         statusText = findViewById(R.id.tx_statusBar);
         doDataRefresh();
     }
 
     @Override
     protected void onStop() {
-        super.onStop();
         closeCameraInterface();
+        Backend.exportJsonFile();
+        super.onStop();
     }
 
     @Override
@@ -153,6 +155,7 @@ public class ScannerActivity extends AppCompatActivity {
         soundIDbeep = null;
         soundIDerror = null;
         soundIDwarn = null;
+        doSaveClose();
         super.onDestroy();
     }
 
@@ -238,10 +241,11 @@ public class ScannerActivity extends AppCompatActivity {
     // REFRESH SSCC LIST
     private void doDataRefresh(){
         new Thread(() -> {
+            int scannedTally = 0;
             StringBuilder dataText = new StringBuilder();
             for (int i=0; i < Backend.selectedManifest.ssccList.size(); i++) {
                 dataText.append(Backend.selectedManifest.ssccList.get(i).ssccID.substring(Backend.selectedManifest.ssccList.get(i).ssccID.length() - 4));
-                if (Backend.selectedManifest.ssccList.get(i).scanned){dataText.append(" [███] [ ");} else {dataText.append(" [░░░] [ ");}
+                if (Backend.selectedManifest.ssccList.get(i).scanned){dataText.append(" [███] [ "); scannedTally++;} else {dataText.append(" [░░░] [ ");}
 
                 dataText.append(fixedLengthString(Backend.selectedManifest.ssccList.get(i).ssccID, 18));
                 dataText.append(" ]\n");
@@ -250,7 +254,14 @@ public class ScannerActivity extends AppCompatActivity {
                 dataText.append("\n\n");
             }
             Backend.selectedManifest.lastModified = String.valueOf(System.currentTimeMillis());
-            dataList.setText(dataText.toString());
+
+            int finalScannedTally = scannedTally;
+            runOnUiThread(() -> {
+                dataList.setText(dataText.toString());
+                tbText.setText(String.format("MANIFEST: %s - (%s/%s)", Backend.selectedManifest.manifestID, finalScannedTally, Backend.selectedManifest.ssccList.size()));
+            });
+
+
         }).start();
 
 
@@ -259,6 +270,7 @@ public class ScannerActivity extends AppCompatActivity {
     private void doSaveClose(){
         Backend.selectedManifest.lastModified = String.valueOf(System.currentTimeMillis());
         Backend.exportJsonFile();
+        setResult(Activity.RESULT_OK);
         this.finish();
     }
 
@@ -274,7 +286,7 @@ public class ScannerActivity extends AppCompatActivity {
         // SSCC CREATION
         ArrayList<Backend.Article> articleList = new ArrayList<>();
 
-        addButton.setOnClickListener(view14 -> {
+        addButton.setOnClickListener(view -> {
             if(!(textGTIN.getText().toString().equals("") || textQTY.getText().toString().equals(""))) {
                 // NEW ARTICLE
                 Backend.Article newArticle = new Backend.Article();
@@ -302,7 +314,7 @@ public class ScannerActivity extends AppCompatActivity {
             }
         });
 
-        articleSaveButton.setOnClickListener(view13 -> {
+        articleSaveButton.setOnClickListener(view -> {
             Backend.SSCC newSSCC = new Backend.SSCC();
             newSSCC.ssccID = barcode;
             newSSCC.unknown = true;
@@ -314,6 +326,7 @@ public class ScannerActivity extends AppCompatActivity {
             }
             newSSCC.articles = articleList;
             Backend.selectedManifest.ssccList.add(newSSCC);
+            Backend.syncSelectedManifestToDB();
             doDataRefresh();
 
             if (codeScanner.isPreviewActive()) {

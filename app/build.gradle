@@ -39,6 +39,7 @@ dependencies {
     implementation 'androidx.navigation:navigation-fragment:2.4.0'
     implementation 'androidx.navigation:navigation-ui:2.4.0'
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
+    implementation 'androidx.work:work-runtime:2.5.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
     implementation 'com.budiyev.android:code-scanner:2.1.0'
 }

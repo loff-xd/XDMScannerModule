@@ -7,9 +7,11 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.AdapterView;
@@ -30,6 +32,9 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
     boolean userAction = false;
     ArrayAdapter<String> xdManifestArrayAdapter;
 
+    final int REQ_CODE_SCANNER = 101;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,7 +54,7 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
 
 
         // BEGIN SCANNING BUTTON
-        btnBeginScanning.setOnClickListener(view -> startActivity(new Intent(MenuActivity.this, ScannerActivity.class)));
+        btnBeginScanning.setOnClickListener(view -> startActivityForResult(new Intent(MenuActivity.this, ScannerActivity.class), REQ_CODE_SCANNER));
 
         // MANIFEST SELECTOR
         manifestSpinner = findViewById(R.id.spinner_mainfest_selector);
@@ -61,11 +66,18 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
         doBackendLoad();
 
         // SYNC BUTTON
-        btnSync.setOnClickListener(view -> startActivity(new Intent(MenuActivity.this, SyncActivity.class)));
+        btnSync.setOnClickListener(view -> startActivityForResult(new Intent(MenuActivity.this, SyncActivity.class), REQ_CODE_SCANNER));
 
         // SPINNER ONCLICK
         manifestSpinner.setOnTouchListener(this);
         manifestSpinner.setOnItemSelectedListener(this);
+    }
+
+    @Override
+    public void onPause(){
+        Backend.exportJsonFile();
+        Log.v("ACTION", "ONPAUSE SAVE");
+        super.onPause();
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -79,7 +91,7 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
     public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
         if (userAction) {
             Backend.changeManifest(Backend.manifest_list.get(i));
-            interfaceUpdate();
+            runOnUiThread(this::interfaceUpdate);
             userAction = false;
         }
     }
@@ -89,32 +101,40 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
     @Override
-    public void onResume(){
-        interfaceUpdate();
-        super.onResume();
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == Activity.RESULT_OK && requestCode == REQ_CODE_SCANNER) {
+            runOnUiThread(this::interfaceUpdate);
+        }
     }
 
     private void doBackendLoad(){
         refreshLayout.setRefreshing(true);
         new Thread(() -> {
+            Log.v("ACTION", "backend_load");
             boolean loadSuccess = Backend.importJsonFile();
-            runOnUiThread(() -> {
-                if (loadSuccess) {
-                    btnBeginScanning.setEnabled(true);
-                } else {
+
+            if (loadSuccess) {
+                runOnUiThread(this::interfaceUpdate);
+            } else {
+                runOnUiThread(() -> { txtStatusText.setText(R.string.jsonImportError);
+                    refreshLayout.setRefreshing(false);
                     btnBeginScanning.setEnabled(false);
-                    txtStatusText.setText(R.string.jsonImportError);
-                }
-                manifestSpinner.setAdapter(xdManifestArrayAdapter);
-                interfaceUpdate();
-                refreshLayout.setRefreshing(false);
-            });
+                });
+            }
 
         }).start();
     }
 
     public void interfaceUpdate(){
-        if (Backend.selectedManifest != null){
+        refreshLayout.setRefreshing(true);
+        Log.v("ACTION", "interface_update");
+        xdManifestArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, Backend.manifest_list);
+        manifestSpinner.setAdapter(xdManifestArrayAdapter);
+
+        if (Backend.selectedManifest != null && Backend.manifest_list.size() != 0){
+            btnBeginScanning.setEnabled(true);
+
             int scannedCount = 0;
             int unknownCount = 0;
             int hrCount = 0;
@@ -130,13 +150,13 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
                 }
             }
 
-            xdManifestArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, Backend.manifest_list);
-            for (int i = 0; i < Backend.manifest_list.size(); i++) {
-                if (Backend.selectedManifest.manifestID.equals(Backend.manifest_list.get(i))) {
-                    manifestSpinner.setSelection(i);
-                    break;
-                }
-            }
+
+                        for (int i = 0; i < Backend.manifest_list.size(); i++) {
+                            if (Backend.selectedManifest.manifestID.equals(Backend.manifest_list.get(i))) {
+                                manifestSpinner.setSelection(i);
+                                break;
+                            }
+                        }
 
             String sb = "SSCCs: " +
                     Backend.selectedManifest.ssccList.size() +
@@ -144,10 +164,18 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
                     " (Extras: " + unknownCount + ")" +
                     "\n\nHigh-Risk SSCCs: " + hrCount +
                     "\n\nTotal Manifests: " + Backend.manifests.size();
+
             txtStatusText.setText(sb);
             if (scannedCount > 0) {
                 btnBeginScanning.setText(R.string.resume_scanning);
+            } else {
+                btnBeginScanning.setText(R.string.begin_scanning);
             }
+
+        } else {
+            btnBeginScanning.setEnabled(false);
         }
+
+        runOnUiThread(() -> refreshLayout.setRefreshing(false));
     }
 }
