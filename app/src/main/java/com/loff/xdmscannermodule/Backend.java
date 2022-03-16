@@ -1,6 +1,14 @@
 package com.loff.xdmscannermodule;
 
+import android.content.Context;
+
 import androidx.annotation.NonNull;
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.ListenableWorker;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
+import androidx.work.Worker;
+import androidx.work.WorkerParameters;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -14,12 +22,26 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
 
+
 public class Backend {
     public static ArrayList<XDManifest> manifests = new ArrayList<>();
     public static ArrayList<String> manifest_list;
     public static XDManifest selectedManifest;
     public static File xdtMobileJsonFile = null;
-    public static boolean IO_LOCK = false;
+
+    public static class saveWorker extends Worker {
+        public saveWorker(
+                Context context,
+                WorkerParameters params) {
+            super(context, params);
+        }
+
+        @NonNull
+        @Override
+        public Result doWork() {
+            return exportJsonFile();
+        }
+    }
 
     public static class SSCC {
         String ssccID;
@@ -51,20 +73,23 @@ public class Backend {
         ArrayList<SSCC> ssccList = new ArrayList<>();
     }
 
-    public static void exportJsonFile() { // TODO APP CLOSING SAFETY
-        new Thread(() -> {
-            IO_LOCK = true;
-            Writer writer;
-            try {
-                writer = new BufferedWriter(new FileWriter(xdtMobileJsonFile));
-                writer.write(exportJson());
-                writer.close();
-                IO_LOCK = false;
-            } catch (IOException e) {
-                e.printStackTrace();
-                IO_LOCK = false;
-            }
-        }).start();
+    public static void exportJsonAsync(Context context) {
+            WorkManager workmanager = WorkManager.getInstance(context);
+            OneTimeWorkRequest request = new OneTimeWorkRequest.Builder(saveWorker.class).build();
+            workmanager.enqueueUniqueWork("fileSave", ExistingWorkPolicy.REPLACE, request);
+    }
+
+    public static ListenableWorker.Result exportJsonFile(){
+        Writer writer;
+        try {
+            writer = new BufferedWriter(new FileWriter(xdtMobileJsonFile));
+            writer.write(exportJson());
+            writer.close();
+            return ListenableWorker.Result.success();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ListenableWorker.Result.failure();
+        }
     }
 
     @NonNull
@@ -142,7 +167,6 @@ public class Backend {
     }
 
     public static boolean importJson(String json_string_in) {
-
 
         try {
             JSONObject jsonIn = new JSONObject(json_string_in);
@@ -240,14 +264,6 @@ public class Backend {
     public static boolean importJsonFile() {
         if (fsCheck()) {
 
-            while (IO_LOCK) {
-                try {
-                    Thread.sleep(50);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-
             StringBuilder json_str_in = new StringBuilder();
             try {
                 BufferedReader bufferedReader = new BufferedReader(new FileReader(xdtMobileJsonFile));
@@ -261,7 +277,7 @@ public class Backend {
                 return importJson(result);
             } catch (Exception e) {
                 e.printStackTrace();
-                return false;
+                return false; // TODO FILE FALLBACK
             }
         } else {
             return false;

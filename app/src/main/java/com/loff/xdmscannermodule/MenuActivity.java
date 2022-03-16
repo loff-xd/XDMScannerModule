@@ -7,7 +7,6 @@ import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -32,8 +31,6 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
     boolean userAction = false;
     ArrayAdapter<String> xdManifestArrayAdapter;
 
-    final int REQ_CODE_SCANNER = 101;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,19 +51,19 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
 
 
         // BEGIN SCANNING BUTTON
-        btnBeginScanning.setOnClickListener(view -> startActivityForResult(new Intent(MenuActivity.this, ScannerActivity.class), REQ_CODE_SCANNER));
+        btnBeginScanning.setOnClickListener(view -> startActivity(new Intent(MenuActivity.this, ScannerActivity.class)));
 
         // MANIFEST SELECTOR
         manifestSpinner = findViewById(R.id.spinner_mainfest_selector);
 
         // PULL TO REFRESH
-        refreshLayout.setOnRefreshListener(this::doBackendLoad);
+        refreshLayout.setOnRefreshListener(this::interfaceUpdate);
 
         // LOAD BACKEND
         doBackendLoad();
 
         // SYNC BUTTON
-        btnSync.setOnClickListener(view -> startActivityForResult(new Intent(MenuActivity.this, SyncActivity.class), REQ_CODE_SCANNER));
+        btnSync.setOnClickListener(view -> startActivity(new Intent(MenuActivity.this, SyncActivity.class)));
 
         // SPINNER ONCLICK
         manifestSpinner.setOnTouchListener(this);
@@ -74,10 +71,16 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
     @Override
-    public void onPause(){
-        Backend.exportJsonFile();
-        Log.v("ACTION", "ONPAUSE SAVE");
-        super.onPause();
+    public void onStop(){
+        super.onStop();
+        Log.v("MenuActivity", "ONSTOP SAVE");
+        Backend.exportJsonAsync(getApplicationContext());
+    }
+
+    @Override
+    public void onRestart(){
+        super.onRestart();
+        interfaceUpdate();
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -100,35 +103,31 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
     public void onNothingSelected(AdapterView<?> adapterView) {
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode == Activity.RESULT_OK && requestCode == REQ_CODE_SCANNER) {
-            runOnUiThread(this::interfaceUpdate);
-        }
-    }
-
     private void doBackendLoad(){
-        refreshLayout.setRefreshing(true);
-        new Thread(() -> {
-            Log.v("ACTION", "backend_load");
-            boolean loadSuccess = Backend.importJsonFile();
+        if (Backend.manifests.size() == 0) {
+            refreshLayout.setRefreshing(true);
+            new Thread(() -> {
+                Log.v("MenuActivity", "backend_load");
+                boolean loadSuccess = Backend.importJsonFile();
 
-            if (loadSuccess) {
-                runOnUiThread(this::interfaceUpdate);
-            } else {
-                runOnUiThread(() -> { txtStatusText.setText(R.string.jsonImportError);
-                    refreshLayout.setRefreshing(false);
-                    btnBeginScanning.setEnabled(false);
-                });
-            }
-
-        }).start();
+                if (loadSuccess) {
+                    runOnUiThread(this::interfaceUpdate);
+                } else {
+                    runOnUiThread(() -> {
+                        txtStatusText.setText(R.string.jsonImportError);
+                        refreshLayout.setRefreshing(false);
+                        btnBeginScanning.setEnabled(false);
+                    });
+                }
+            }).start();
+        } else {
+            interfaceUpdate();
+        }
     }
 
     public void interfaceUpdate(){
         refreshLayout.setRefreshing(true);
-        Log.v("ACTION", "interface_update");
+        Log.v("MenuActivity", "interface_update");
         xdManifestArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, Backend.manifest_list);
         manifestSpinner.setAdapter(xdManifestArrayAdapter);
 
@@ -176,6 +175,6 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
             btnBeginScanning.setEnabled(false);
         }
 
-        runOnUiThread(() -> refreshLayout.setRefreshing(false));
+        refreshLayout.setRefreshing(false);
     }
 }

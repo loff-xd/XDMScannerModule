@@ -102,7 +102,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:srcCompat="@android:drawable/ic_menu_camera"
-        tools:ignore="SpeakableTextPresentCheck,ImageContrastCheck" />
+        tools:ignore="SpeakableTextPresentCheck,ImageContrastCheck"/>
 
     <View
         android:id="@+id/view_darken_overlay"
@@ -244,14 +244,13 @@
                 <TextView
                     android:id="@+id/text_article_list"
                     android:layout_width="378dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="0dp"
                     android:layout_marginStart="4dp"
                     android:layout_weight="1"
                     android:fontFamily="monospace"
                     android:padding="8dp"
                     android:textColor="?android:attr/textColorPrimary"
-                    android:textSize="16sp"
-                    tools:ignore="InefficientWeight" />
+                    android:textSize="16sp" />
             </LinearLayout>
         </ScrollView>
 
@@ -292,5 +291,20 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:srcCompat="@android:drawable/ic_menu_close_clear_cancel"
         tools:ignore="SpeakableTextPresentCheck" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabEnterCode"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="64dp"
+        android:alpha=".3"
+        android:clickable="true"
+        android:contentDescription="@string/enter_barcode"
+        android:minWidth="48dp"
+        app:layout_constraintBottom_toTopOf="@id/fabScan"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:srcCompat="@android:drawable/ic_menu_edit"
+        tools:ignore="SpeakableTextPresentCheck,ImageContrastCheck" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
