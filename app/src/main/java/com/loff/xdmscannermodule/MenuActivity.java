@@ -43,6 +43,7 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
         }
 
         Backend.xdtMobileJsonFile = new File(this.getExternalFilesDir(null), getString(R.string.xdt_data_file));
+        Backend.xdtMobileJsonTempFile = new File(this.getExternalFilesDir(null), getString(R.string.xdt_data_temp_file));
 
         btnBeginScanning = findViewById(R.id.btn_begin_scanning);
         btnSync = findViewById(R.id.btn_sync);
@@ -74,7 +75,9 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
     public void onStop(){
         super.onStop();
         Log.v("MenuActivity", "ONSTOP SAVE");
-        Backend.exportJsonAsync(getApplicationContext());
+        if (Backend.manifests.size() > 0) {
+            Backend.exportJsonAsync(getApplicationContext());
+        }
     }
 
     @Override

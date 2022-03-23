@@ -63,6 +63,8 @@ public class ScannerActivity extends AppCompatActivity {
     final int H_ERROR = 2;
     final VibrationEffect normalPattern = VibrationEffect.createOneShot(80, VibrationEffect.DEFAULT_AMPLITUDE);
 
+    private int progressCounter = 0;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -149,7 +151,9 @@ public class ScannerActivity extends AppCompatActivity {
         soundIDbeep = null;
         soundIDerror = null;
         soundIDwarn = null;
-        Backend.exportJsonAsync(getApplicationContext());
+        if (Backend.manifests.size() > 0) {
+            Backend.exportJsonAsync(getApplicationContext());
+        }
     }
 
     @Override
@@ -276,6 +280,14 @@ public class ScannerActivity extends AppCompatActivity {
 
             doDataRefresh();
         }).start();
+
+        // SAVE PROGRESS EVERY 3 CARTONS
+        if (progressCounter > 2) {
+            Backend.exportJsonAsync(getApplicationContext());
+            progressCounter = 0;
+        } else {
+            progressCounter++;
+        }
     }
 
     // REFRESH SSCC LIST

@@ -1,6 +1,7 @@
 package com.loff.xdmscannermodule;
 
 import android.content.Context;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.work.ExistingWorkPolicy;
@@ -28,6 +29,7 @@ public class Backend {
     public static ArrayList<String> manifest_list;
     public static XDManifest selectedManifest;
     public static File xdtMobileJsonFile = null;
+    public static File xdtMobileJsonTempFile = null;
 
     public static class saveWorker extends Worker {
         public saveWorker(
@@ -82,10 +84,24 @@ public class Backend {
     public static ListenableWorker.Result exportJsonFile(){
         Writer writer;
         try {
-            writer = new BufferedWriter(new FileWriter(xdtMobileJsonFile));
+            Log.v("BACKEND", "WRITE NEW DATA TO TEMP FILE");
+            writer = new BufferedWriter(new FileWriter(xdtMobileJsonTempFile));
             writer.write(exportJson());
             writer.close();
-            return ListenableWorker.Result.success();
+
+            boolean deleteResult = true;
+            if (xdtMobileJsonFile.exists()) {
+                deleteResult = xdtMobileJsonFile.delete();
+                Log.v("BACKEND", "REPLACE FAILSAFE WITH NEW DATA");
+            }
+            boolean renameResult = xdtMobileJsonTempFile.renameTo(xdtMobileJsonFile);
+            Log.v("BACKEND", "NEW DATA SAVED");
+
+            if (deleteResult && renameResult) {
+                return ListenableWorker.Result.success();
+            } else {
+                return ListenableWorker.Result.failure();
+            }
         } catch (IOException e) {
             e.printStackTrace();
             return ListenableWorker.Result.failure();
@@ -277,19 +293,40 @@ public class Backend {
                 return importJson(result);
             } catch (Exception e) {
                 e.printStackTrace();
-                return false; // TODO FILE FALLBACK
+                return false;
             }
         } else {
             return false;
         }
     }
 
+    @SuppressWarnings("BusyWait")
     public static boolean fsCheck() {
-        if (xdtMobileJsonFile != null) {
+
+        if (xdtMobileJsonFile != null && xdtMobileJsonTempFile != null) {
+
+            int attempts = 0;
+            while (xdtMobileJsonTempFile.exists()) {
+                if (attempts > 5) {
+                    //noinspection ResultOfMethodCallIgnored
+                    xdtMobileJsonTempFile.delete();
+                    return xdtMobileJsonFile.exists();
+                }
+                attempts++;
+                Log.v("BACKEND", "WAIT FOR FILE LOCK");
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
             return xdtMobileJsonFile.exists();
+
         } else {
             return false;
         }
+
     }
 
     public static void changeManifest(String selectedManifestID){

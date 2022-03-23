@@ -20,4 +20,5 @@
     <string name="selected_manifest">Select Manifest:</string>
     <string name="force_scanner_copy">Force Scanner Copy</string>
     <string name="enter_barcode">enter barcode</string>
+    <string name="xdt_data_temp_file">xdt_temp.json</string>
 </resources>
