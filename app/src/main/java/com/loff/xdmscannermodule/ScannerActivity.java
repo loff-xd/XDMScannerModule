@@ -1,10 +1,11 @@
 package com.loff.xdmscannermodule;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.pm.PackageManager;
+import android.media.Image;
 import android.media.MediaPlayer;
 import android.os.Bundle;
 import android.os.VibrationEffect;
@@ -16,17 +17,25 @@ import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
-
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.camera.core.CameraSelector;
+import androidx.camera.core.ImageAnalysis;
+import androidx.camera.core.Preview;
+import androidx.camera.lifecycle.ProcessCameraProvider;
+import androidx.camera.view.PreviewView;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-
-import com.budiyev.android.codescanner.CodeScanner;
-import com.budiyev.android.codescanner.CodeScannerView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.mlkit.vision.barcode.BarcodeScanner;
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions;
+import com.google.mlkit.vision.barcode.BarcodeScanning;
+import com.google.mlkit.vision.barcode.common.Barcode;
+import com.google.mlkit.vision.common.InputImage;
 
 import java.util.ArrayList;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 
 
@@ -37,7 +46,6 @@ public class ScannerActivity extends AppCompatActivity {
 
     private ConstraintLayout articleDialogLayout;
     private View darkOverlay;
-    private boolean articleDialogIsVisible = false;
     private EditText textGTIN;
     private EditText textQTY;
     private TextView textArticleList;
@@ -46,8 +54,11 @@ public class ScannerActivity extends AppCompatActivity {
     private CheckBox checkHighRisk;
     private FloatingActionButton enterBarcodeFab;
     TextView tbText;
-    CodeScanner codeScanner;
-    CodeScannerView scannerView;
+
+    BarcodeScannerOptions options;
+    BarcodeScanner barcodeScanner;
+    PreviewView previewView;
+    ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
 
     private TextView dataList;
     private TextView statusText;
@@ -95,16 +106,10 @@ public class ScannerActivity extends AppCompatActivity {
         darkOverlay = findViewById(R.id.view_darken_overlay);
 
         // CODE SCANNER
-        scannerView = findViewById(R.id.codeScanner);
-        codeScanner = new CodeScanner(this, scannerView);
-        codeScanner.setDecodeCallback(result -> runOnUiThread(() -> {
-            if (articleDialogIsVisible){
-                textGTIN.setText(result.toString());
-            } else {
-                checkBarcode(result.getText());
-            }
-            closeCameraInterface();
-        }));
+        previewView = findViewById(R.id.previewView);
+        cameraProviderFuture = ProcessCameraProvider.getInstance(this);
+        options = new BarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_EAN_13, Barcode.FORMAT_CODE_128).build();
+        barcodeScanner = BarcodeScanning.getClient(options);
 
         // ARTICLE WINDOW
         textQTY = findViewById(R.id.entry_article_qty);
@@ -120,7 +125,6 @@ public class ScannerActivity extends AppCompatActivity {
 
         // CANCEL BUTTON + DISMISSAL
         cancelButton.setOnClickListener(view12 -> {
-            articleDialogIsVisible = false;
             articleDialogLayout.setVisibility(View.GONE);
             darkOverlay.setVisibility(View.GONE);
         });
@@ -130,6 +134,39 @@ public class ScannerActivity extends AppCompatActivity {
         tbText = findViewById(R.id.tb_text);
         statusText = findViewById(R.id.tx_statusBar);
     }
+
+    private void startCamera(ProcessCameraProvider cameraProvider) {
+        // Camera setup
+        cameraProvider.unbindAll();
+        CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
+        Preview preview = new Preview.Builder().build();
+
+        preview.setSurfaceProvider(previewView.getSurfaceProvider());
+
+        // Image analysis setup
+        ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build();
+
+        imageAnalysis.setAnalyzer(getMainExecutor(), imageProxy -> {
+            // Barcode scanning
+            @SuppressLint("UnsafeOptInUsageError") Image frame = imageProxy.getImage();
+            if (frame != null) {
+                InputImage image = InputImage.fromMediaImage(frame, imageProxy.getImageInfo().getRotationDegrees());
+                barcodeScanner.process(image)
+                        .addOnSuccessListener(barcodes -> {
+                            for (Barcode barcode: barcodes) {
+                                Log.v("RESULT: ", barcode.getRawValue());
+                                closeCameraInterface();
+                            }
+                        })
+                        .addOnCompleteListener(task -> imageProxy.close());
+            }
+        });
+
+        // Begin + bind
+        cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis);
+    }
+
 
     @Override
     protected void onStart(){
@@ -169,10 +206,18 @@ public class ScannerActivity extends AppCompatActivity {
     private void openCameraInterface() {
         // CHECK PERMS AND ASK IF MISSING
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            scannerView.setVisibility(View.VISIBLE);
+            previewView.setVisibility(View.VISIBLE);
             cancelScanFab.setVisibility(View.VISIBLE);
             scanBarcodeFab.setVisibility(View.INVISIBLE);
-            codeScanner.startPreview();
+
+            cameraProviderFuture.addListener(() -> {
+                try {
+                    ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
+                    startCamera(cameraProvider);
+                } catch (ExecutionException | InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }, ContextCompat.getMainExecutor(this));
 
         } else {
             ActivityCompat.requestPermissions(ScannerActivity.this, new String[] {Manifest.permission.CAMERA}, 5);
@@ -187,17 +232,23 @@ public class ScannerActivity extends AppCompatActivity {
         input.setInputType(InputType.TYPE_CLASS_NUMBER);
         manualDialog.setView(input);
 
-        manualDialog.setPositiveButton("OK", (DialogInterface.OnClickListener) (dialogInterface, i) -> checkBarcode(input.getText().toString()));
-        manualDialog.setNegativeButton("Cancel", (DialogInterface.OnClickListener) (dialogInterface, i) -> dialogInterface.cancel());
+        manualDialog.setPositiveButton("OK", (dialogInterface, i) -> checkBarcode(input.getText().toString()));
+        manualDialog.setNegativeButton("Cancel", (dialogInterface, i) -> dialogInterface.cancel());
 
         manualDialog.show();
     }
 
     private void closeCameraInterface() {
-        scannerView.setVisibility(View.GONE);
+        try {
+            ProcessCameraProvider cameraProvider = cameraProviderFuture.get();
+            cameraProvider.unbindAll();
+        } catch (ExecutionException | InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        previewView.setVisibility(View.GONE);
         cancelScanFab.setVisibility(View.INVISIBLE);
         scanBarcodeFab.setVisibility(View.VISIBLE);
-        codeScanner.stopPreview();
     }
 
     private void checkBarcode(String barcode) {
@@ -324,7 +375,6 @@ public class ScannerActivity extends AppCompatActivity {
 
     private void showUnknownSSCCDialog(String barcode) {
         // SHOW VIS
-        articleDialogIsVisible = true;
         articleDialogLayout.setVisibility(View.VISIBLE);
         darkOverlay.setVisibility(View.VISIBLE);
         enterBarcodeFab.setVisibility(View.GONE);
@@ -378,10 +428,6 @@ public class ScannerActivity extends AppCompatActivity {
             Backend.syncSelectedManifestToDB();
             doDataRefresh();
 
-            if (codeScanner.isPreviewActive()) {
-                closeCameraInterface();
-            }
-            articleDialogIsVisible = false;
             articleDialogLayout.setVisibility(View.GONE);
             darkOverlay.setVisibility(View.GONE);
             enterBarcodeFab.setVisibility(View.VISIBLE);

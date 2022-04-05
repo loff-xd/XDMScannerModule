@@ -256,24 +256,28 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <com.budiyev.android.codescanner.CodeScannerView
-        android:id="@+id/codeScanner"
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabEnterCode"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="64dp"
+        android:alpha=".3"
+        android:clickable="true"
+        android:contentDescription="@string/enter_barcode"
+        android:minWidth="48dp"
+        app:layout_constraintBottom_toTopOf="@id/fabScan"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:srcCompat="@android:drawable/ic_menu_edit"
+        tools:ignore="SpeakableTextPresentCheck,ImageContrastCheck" />
+
+    <androidx.camera.view.PreviewView
+        android:id="@+id/previewView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:elevation="100dp"
         android:visibility="gone"
-        app:autoFocusButtonColor="@android:color/white"
-        app:autoFocusButtonVisible="true"
-        app:flashButtonColor="@android:color/white"
-        app:flashButtonVisible="true"
-        app:frameAspectRatioHeight="1"
-        app:frameAspectRatioWidth="2"
-        app:frameColor="@android:color/white"
-        app:frameCornersRadius="6dp"
-        app:frameCornersSize="32dp"
-        app:frameSize="0.9">
-
-    </com.budiyev.android.codescanner.CodeScannerView>
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabCancel"
@@ -291,20 +295,5 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:srcCompat="@android:drawable/ic_menu_close_clear_cancel"
         tools:ignore="SpeakableTextPresentCheck" />
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabEnterCode"
-        android:layout_width="wrap_content"
-        android:layout_height="0dp"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="64dp"
-        android:alpha=".3"
-        android:clickable="true"
-        android:contentDescription="@string/enter_barcode"
-        android:minWidth="48dp"
-        app:layout_constraintBottom_toTopOf="@id/fabScan"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:srcCompat="@android:drawable/ic_menu_edit"
-        tools:ignore="SpeakableTextPresentCheck,ImageContrastCheck" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
