@@ -155,8 +155,9 @@ public class ScannerActivity extends AppCompatActivity {
                 barcodeScanner.process(image)
                         .addOnSuccessListener(barcodes -> {
                             for (Barcode barcode: barcodes) {
-                                Log.v("RESULT: ", barcode.getRawValue());
+                                checkBarcode(barcode.getRawValue());
                                 closeCameraInterface();
+                                break;
                             }
                         })
                         .addOnCompleteListener(task -> imageProxy.close());
@@ -209,6 +210,7 @@ public class ScannerActivity extends AppCompatActivity {
             previewView.setVisibility(View.VISIBLE);
             cancelScanFab.setVisibility(View.VISIBLE);
             scanBarcodeFab.setVisibility(View.INVISIBLE);
+            enterBarcodeFab.setVisibility(View.INVISIBLE);
 
             cameraProviderFuture.addListener(() -> {
                 try {
@@ -249,6 +251,7 @@ public class ScannerActivity extends AppCompatActivity {
         previewView.setVisibility(View.GONE);
         cancelScanFab.setVisibility(View.INVISIBLE);
         scanBarcodeFab.setVisibility(View.VISIBLE);
+        enterBarcodeFab.setVisibility(View.VISIBLE);
     }
 
     private void checkBarcode(String barcode) {
