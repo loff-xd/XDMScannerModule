@@ -56,7 +56,6 @@ public class SyncActivity extends AppCompatActivity {
             Context context = getApplicationContext();
             WifiManager wm = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
             @SuppressWarnings("deprecation") String ip = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
-            statusUpdate("\nIP: " + ip);
             ipText.setText(ip);
 
             try {
@@ -65,6 +64,8 @@ public class SyncActivity extends AppCompatActivity {
                 serverSocket.bind(new InetSocketAddress(PORT));
 
                 socket = serverSocket.accept();
+                statusUpdate("\nHello Friend! Sync in progress...");
+                setBG(ContextCompat.getColor(context, R.color.wait_yellow));
 
                 BufferedReader data_in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 Writer data_out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
@@ -91,7 +92,7 @@ public class SyncActivity extends AppCompatActivity {
                 data_out.append(Backend.exportJson());
                 data_out.append("\n");
                 data_out.flush();
-                Log.d("DATA_OUT", "Sent bytes: " + Backend.exportJson().length());
+                Log.d("DATA_OUT", "\nSent bytes: " + Backend.exportJson().length());
 
                 // DATA CLOSE
                 socket.close();

@@ -15,4 +15,5 @@
 
     <color name="success_green">#FF58a16c</color>
     <color name="fail_red">#FFc26a4f</color>
+    <color name="wait_yellow">#FFC107</color>
 </resources>
