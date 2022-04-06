@@ -52,7 +52,9 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
 
 
         // BEGIN SCANNING BUTTON
-        btnBeginScanning.setOnClickListener(view -> startActivity(new Intent(MenuActivity.this, ScannerActivity.class)));
+        btnBeginScanning.setOnClickListener(view -> {
+            if (!refreshLayout.isRefreshing()) startActivity(new Intent(MenuActivity.this, ScannerActivity.class));
+        });
 
         // MANIFEST SELECTOR
         manifestSpinner = findViewById(R.id.spinner_mainfest_selector);

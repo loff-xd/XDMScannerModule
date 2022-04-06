@@ -5,6 +5,10 @@ import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.PixelFormat;
 import android.media.Image;
 import android.media.MediaPlayer;
 import android.os.Bundle;
@@ -12,11 +16,16 @@ import android.os.VibrationEffect;
 import android.os.Vibrator;
 import android.text.InputType;
 import android.util.Log;
+import android.util.Size;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
@@ -35,6 +44,7 @@ import com.google.mlkit.vision.barcode.common.Barcode;
 import com.google.mlkit.vision.common.InputImage;
 
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 
@@ -59,6 +69,10 @@ public class ScannerActivity extends AppCompatActivity {
     BarcodeScanner barcodeScanner;
     PreviewView previewView;
     ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
+
+    SurfaceView surfaceView;
+    SurfaceHolder holder;
+    Paint paint;
 
     private TextView dataList;
     private TextView statusText;
@@ -111,6 +125,27 @@ public class ScannerActivity extends AppCompatActivity {
         options = new BarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_EAN_13, Barcode.FORMAT_CODE_128).build();
         barcodeScanner = BarcodeScanning.getClient(options);
 
+        surfaceView = findViewById(R.id.overlay);
+        surfaceView.setZOrderOnTop(true);
+        holder = surfaceView.getHolder();
+
+        // CODE SCANNER PREVIEW
+        holder.addCallback(new SurfaceHolder.Callback() {
+            @Override
+            public void surfaceCreated(@NonNull SurfaceHolder surfaceHolder) {
+                holder.setFormat(PixelFormat.TRANSPARENT);
+                drawOverlay();
+            }
+
+            @Override
+            public void surfaceChanged(@NonNull SurfaceHolder surfaceHolder, int i, int i1, int i2) {
+            }
+
+            @Override
+            public void surfaceDestroyed(@NonNull SurfaceHolder surfaceHolder) {
+            }
+        });
+
         // ARTICLE WINDOW
         textQTY = findViewById(R.id.entry_article_qty);
         textArticleList = findViewById(R.id.text_article_list);
@@ -139,7 +174,7 @@ public class ScannerActivity extends AppCompatActivity {
         // Camera setup
         cameraProvider.unbindAll();
         CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
-        Preview preview = new Preview.Builder().build();
+        Preview preview = new Preview.Builder().setTargetResolution(new Size(720, 1280)).build();
 
         preview.setSurfaceProvider(previewView.getSurfaceProvider());
 
@@ -155,9 +190,10 @@ public class ScannerActivity extends AppCompatActivity {
                 barcodeScanner.process(image)
                         .addOnSuccessListener(barcodes -> {
                             for (Barcode barcode: barcodes) {
-                                checkBarcode(barcode.getRawValue());
-                                closeCameraInterface();
-                                break;
+                                if (Objects.requireNonNull(barcode.getDisplayValue()).startsWith("00")) {
+                                    checkBarcode(barcode.getDisplayValue());
+                                    closeCameraInterface();
+                                }
                             }
                         })
                         .addOnCompleteListener(task -> imageProxy.close());
@@ -208,6 +244,7 @@ public class ScannerActivity extends AppCompatActivity {
         // CHECK PERMS AND ASK IF MISSING
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             previewView.setVisibility(View.VISIBLE);
+            surfaceView.setVisibility(View.VISIBLE);
             cancelScanFab.setVisibility(View.VISIBLE);
             scanBarcodeFab.setVisibility(View.INVISIBLE);
             enterBarcodeFab.setVisibility(View.INVISIBLE);
@@ -226,9 +263,27 @@ public class ScannerActivity extends AppCompatActivity {
         }
     }
 
+    public void drawOverlay() {
+        Canvas canvas = holder.lockCanvas();
+
+        paint = new Paint();
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(Color.parseColor("#FF0000"));
+        paint.setStrokeWidth(8);
+
+        int crosshairSize = 50;
+        int centre_x = canvas.getWidth() / 2;
+        int centre_y = canvas.getHeight() / 2;
+
+        canvas.drawLine(centre_x - crosshairSize, centre_y, centre_x + crosshairSize, centre_y, paint);
+        canvas.drawLine(centre_x, centre_y - crosshairSize, centre_x, centre_y + crosshairSize, paint);
+
+        holder.unlockCanvasAndPost(canvas);
+    }
+
     private void barcodeMaunalEntry() {
         AlertDialog.Builder manualDialog = new AlertDialog.Builder(this);
-        manualDialog.setTitle("Enter carton SSCC:\n(Including leading 00)");
+        manualDialog.setTitle("Enter carton SSCC:\n(Including the leading 00!)");
 
         final EditText input = new EditText(this);
         input.setInputType(InputType.TYPE_CLASS_NUMBER);
@@ -249,6 +304,7 @@ public class ScannerActivity extends AppCompatActivity {
         }
 
         previewView.setVisibility(View.GONE);
+        surfaceView.setVisibility(View.GONE);
         cancelScanFab.setVisibility(View.INVISIBLE);
         scanBarcodeFab.setVisibility(View.VISIBLE);
         enterBarcodeFab.setVisibility(View.VISIBLE);
@@ -259,7 +315,7 @@ public class ScannerActivity extends AppCompatActivity {
         new Thread(() -> {
             Context context = getApplicationContext();
             boolean matchFound = false;
-            if (barcode.startsWith("00") && barcode.length() > 16) {
+            if (barcode.length() > 16) {
                 for (int i = 0; i < Backend.selectedManifest.ssccList.size(); i++) {
                     if (barcode.contains(Backend.selectedManifest.ssccList.get(i).ssccID)) {
                         // ALREADY SCANNED
@@ -287,7 +343,7 @@ public class ScannerActivity extends AppCompatActivity {
 
                             runOnUiThread(() -> new AlertDialog.Builder(dialogContext)
                                     .setMessage("This is a high-risk carton.\n Please action accordingly.")
-                                    .setPositiveButton("Ok", null)
+                                    .setPositiveButton("OK", null)
                                     .show());
                         } else {
                             // NORMAL SCAN
@@ -309,9 +365,11 @@ public class ScannerActivity extends AppCompatActivity {
                     statusText.setText(String.format("%s: UNKNOWN", barcode));
 
                     runOnUiThread(() -> new AlertDialog.Builder(dialogContext)
-                            .setMessage("SSCC: " + barcode + " is not in the manifest.\n\nIf it belongs to your store, would you like to add as missing carton?")
-                            .setPositiveButton("Yes", (dialogInterface, i) -> showUnknownSSCCDialog(barcode))
-                            .setNegativeButton("No", null)
+                            //.setMessage("SSCC: " + barcode + " is not in the manifest.\n\nIf it belongs to your store, would you like to add as missing carton?")
+                            .setMessage("SSCC: " + barcode + " is not in the selected manifest.\n\nPlease check it is for your store and isolate for further action.")
+                            //.setPositiveButton("Yes", (dialogInterface, i) -> showUnknownSSCCDialog(barcode))
+                            //.setNegativeButton("No", null)
+                            .setPositiveButton("OK", null)
                             .setIcon(android.R.drawable.ic_dialog_alert)
                             .show());
 
@@ -326,7 +384,7 @@ public class ScannerActivity extends AppCompatActivity {
                 statusText.setText(String.format("%s: UNKNOWN", barcode));
 
                 runOnUiThread(() -> new AlertDialog.Builder(dialogContext)
-                                .setMessage("SSCC: " + barcode + " isn't a SSCC")
+                                .setMessage("Barcode: " + barcode + " isn't a SSCC")
                                 .setNegativeButton("OK", null)
                                 .setIcon(android.R.drawable.ic_dialog_alert)
                                 .show());
@@ -376,6 +434,7 @@ public class ScannerActivity extends AppCompatActivity {
         this.finish();
     }
 
+    // REIMPLEMENTATION ON DB CONVERSION
     private void showUnknownSSCCDialog(String barcode) {
         // SHOW VIS
         articleDialogLayout.setVisibility(View.VISIBLE);
@@ -468,14 +527,14 @@ public class ScannerActivity extends AppCompatActivity {
         switch (type){
 
             case H_WARN:
-                HapticRunner.execute(warnHaptic);
+                new Thread(warnHaptic).start();
                 break;
             case H_ERROR:
-                HapticRunner.execute(errorHaptic);
+                new Thread(errorHaptic).start();
                 break;
             case H_NORMAL:
             default:
-                HapticRunner.execute(normalHaptic);
+                new Thread(normalHaptic).start();
                 break;
         }
     }
