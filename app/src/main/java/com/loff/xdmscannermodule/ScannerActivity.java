@@ -190,9 +190,16 @@ public class ScannerActivity extends AppCompatActivity {
                 barcodeScanner.process(image)
                         .addOnSuccessListener(barcodes -> {
                             for (Barcode barcode: barcodes) {
-                                if (Objects.requireNonNull(barcode.getDisplayValue()).startsWith("00")) {
-                                    checkBarcode(barcode.getDisplayValue());
-                                    closeCameraInterface();
+                                // CHECK IF CENTRE Y
+                                float ihc = frame.getHeight();
+                                float bh = Objects.requireNonNull(barcode.getCornerPoints())[0].y;
+                                if (0.5 < bh / ihc && bh / ihc < 0.7){
+                                    // DO THING
+                                    if (Objects.requireNonNull(barcode.getDisplayValue()).startsWith("00")) {
+                                        checkBarcode(barcode.getDisplayValue());
+                                        closeCameraInterface();
+                                        break;
+                                        }
                                 }
                             }
                         })
