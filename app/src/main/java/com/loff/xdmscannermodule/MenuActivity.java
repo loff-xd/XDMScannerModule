@@ -52,7 +52,9 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
 
 
         // BEGIN SCANNING BUTTON
-        btnBeginScanning.setOnClickListener(view -> startActivity(new Intent(MenuActivity.this, ScannerActivity.class)));
+        btnBeginScanning.setOnClickListener(view -> {
+            if (!refreshLayout.isRefreshing()) startActivity(new Intent(MenuActivity.this, ScannerActivity.class));
+        });
 
         // MANIFEST SELECTOR
         manifestSpinner = findViewById(R.id.spinner_mainfest_selector);
@@ -131,10 +133,10 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
     public void interfaceUpdate(){
         refreshLayout.setRefreshing(true);
         Log.v("MenuActivity", "interface_update");
-        xdManifestArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, Backend.manifest_list);
-        manifestSpinner.setAdapter(xdManifestArrayAdapter);
 
         if (Backend.selectedManifest != null && Backend.manifest_list.size() != 0){
+            xdManifestArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, Backend.manifest_list);
+            manifestSpinner.setAdapter(xdManifestArrayAdapter);
             btnBeginScanning.setEnabled(true);
 
             int scannedCount = 0;

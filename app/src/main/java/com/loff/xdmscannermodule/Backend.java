@@ -315,7 +315,7 @@ public class Backend {
                 attempts++;
                 Log.v("BACKEND", "WAIT FOR FILE LOCK");
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(500);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
