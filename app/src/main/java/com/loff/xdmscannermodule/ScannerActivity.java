@@ -21,12 +21,13 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.camera.core.Camera;
+import androidx.camera.core.CameraControl;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.Preview;
@@ -43,7 +44,6 @@ import com.google.mlkit.vision.barcode.BarcodeScanning;
 import com.google.mlkit.vision.barcode.common.Barcode;
 import com.google.mlkit.vision.common.InputImage;
 
-import java.util.ArrayList;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
@@ -53,15 +53,10 @@ public class ScannerActivity extends AppCompatActivity {
 
     private FloatingActionButton scanBarcodeFab;
     private FloatingActionButton cancelScanFab;
+    private FloatingActionButton torchFab;
 
     private ConstraintLayout articleDialogLayout;
     private View darkOverlay;
-    private EditText textGTIN;
-    private EditText textQTY;
-    private TextView textArticleList;
-    private Button articleSaveButton;
-    private Button addButton;
-    private CheckBox checkHighRisk;
     private FloatingActionButton enterBarcodeFab;
     TextView tbText;
 
@@ -69,6 +64,9 @@ public class ScannerActivity extends AppCompatActivity {
     BarcodeScanner barcodeScanner;
     PreviewView previewView;
     ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
+    Camera camera;
+    CameraControl cameraControl;
+    boolean torch = false;
 
     SurfaceView surfaceView;
     SurfaceHolder holder;
@@ -106,6 +104,10 @@ public class ScannerActivity extends AppCompatActivity {
         // CANCEL BUTTON
         cancelScanFab = findViewById(R.id.fabCancel);
         cancelScanFab.setOnClickListener(view -> closeCameraInterface());
+
+        // CANCEL BUTTON
+        torchFab = findViewById(R.id.fabTorch);
+        torchFab.setOnClickListener(view -> toggleTorch());
 
         // MANUAL ENTRY BUTTON
         enterBarcodeFab = findViewById(R.id.fabEnterCode);
@@ -147,15 +149,8 @@ public class ScannerActivity extends AppCompatActivity {
         });
 
         // ARTICLE WINDOW
-        textQTY = findViewById(R.id.entry_article_qty);
-        textArticleList = findViewById(R.id.text_article_list);
         Button scanButton = findViewById(R.id.btn_scan_gtin);
         Button cancelButton = findViewById(R.id.extra_sscc_btn_cancel);
-        articleSaveButton = findViewById(R.id.extra_sscc_button_save);
-        addButton = findViewById(R.id.btn_add_article);
-        checkHighRisk = findViewById(R.id.cb_HR);
-        textGTIN = findViewById(R.id.entry_article_gtin);
-
         scanButton.setOnClickListener(view -> openCameraInterface());
 
         // CANCEL BUTTON + DISMISSAL
@@ -174,7 +169,7 @@ public class ScannerActivity extends AppCompatActivity {
         // Camera setup
         cameraProvider.unbindAll();
         CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
-        Preview preview = new Preview.Builder().setTargetResolution(new Size(720, 1280)).build();
+        Preview preview = new Preview.Builder().setTargetResolution(new Size(1080, 1920)).build();
 
         preview.setSurfaceProvider(previewView.getSurfaceProvider());
 
@@ -201,7 +196,9 @@ public class ScannerActivity extends AppCompatActivity {
         });
 
         // Begin + bind
-        cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis);
+        camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis);
+        cameraControl = camera.getCameraControl();
+        cameraControl.enableTorch(torch);
     }
 
 
@@ -246,6 +243,7 @@ public class ScannerActivity extends AppCompatActivity {
             previewView.setVisibility(View.VISIBLE);
             surfaceView.setVisibility(View.VISIBLE);
             cancelScanFab.setVisibility(View.VISIBLE);
+            torchFab.setVisibility(View.VISIBLE);
             scanBarcodeFab.setVisibility(View.INVISIBLE);
             enterBarcodeFab.setVisibility(View.INVISIBLE);
 
@@ -269,9 +267,9 @@ public class ScannerActivity extends AppCompatActivity {
         paint = new Paint();
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(Color.parseColor("#FF0000"));
-        paint.setStrokeWidth(8);
+        paint.setStrokeWidth(6);
 
-        int crosshairSize = 50;
+        int crosshairSize = 35;
         int centre_x = canvas.getWidth() / 2;
         int centre_y = canvas.getHeight() / 2;
 
@@ -306,6 +304,7 @@ public class ScannerActivity extends AppCompatActivity {
         previewView.setVisibility(View.GONE);
         surfaceView.setVisibility(View.GONE);
         cancelScanFab.setVisibility(View.INVISIBLE);
+        torchFab.setVisibility(View.INVISIBLE);
         scanBarcodeFab.setVisibility(View.VISIBLE);
         enterBarcodeFab.setVisibility(View.VISIBLE);
     }
@@ -434,68 +433,6 @@ public class ScannerActivity extends AppCompatActivity {
         this.finish();
     }
 
-    // REIMPLEMENTATION ON DB CONVERSION
-    private void showUnknownSSCCDialog(String barcode) {
-        // SHOW VIS
-        articleDialogLayout.setVisibility(View.VISIBLE);
-        darkOverlay.setVisibility(View.VISIBLE);
-        enterBarcodeFab.setVisibility(View.GONE);
-        textQTY.setText("1");
-
-
-
-        // SSCC CREATION
-        ArrayList<Backend.Article> articleList = new ArrayList<>();
-
-        addButton.setOnClickListener(view -> {
-            if(!(textGTIN.getText().toString().equals("") || textQTY.getText().toString().equals(""))) {
-                // NEW ARTICLE
-                Backend.Article newArticle = new Backend.Article();
-                newArticle.GTIN = textGTIN.getText().toString();
-                newArticle.QTY = Integer.parseInt(textQTY.getText().toString());
-                newArticle.highRisk = checkHighRisk.isChecked();
-                newArticle.code = "";
-                newArticle.desc = "";
-                articleList.add(newArticle);
-
-                // RESET FIELDS
-                textGTIN.setText("");
-                textQTY.setText("1");
-                checkHighRisk.setChecked(false);
-
-                // UPDATE LIST
-                StringBuilder articleListOutput = new StringBuilder();
-                for (int i = 0; i < articleList.size(); i++) {
-                    articleListOutput.append("\n").append(articleList.get(i).QTY).append("x ").append(articleList.get(i).GTIN);
-                    if (articleList.get(i).highRisk) {
-                        articleListOutput.append("\n  - HIGH-RISK");
-                    }
-                }
-                textArticleList.setText(articleListOutput.toString());
-            }
-        });
-
-        articleSaveButton.setOnClickListener(view -> {
-            Backend.SSCC newSSCC = new Backend.SSCC();
-            newSSCC.ssccID = barcode;
-            newSSCC.unknown = true;
-            newSSCC.scanned = true;
-            newSSCC.description = "Manually Added";
-            newSSCC.highRisk = false;
-            for (int i=0; i<articleList.size(); i++){
-                if (articleList.get(i).highRisk) { newSSCC.highRisk = true; }
-            }
-            newSSCC.articles = articleList;
-            Backend.selectedManifest.ssccList.add(newSSCC);
-            Backend.syncSelectedManifestToDB();
-            doDataRefresh();
-
-            articleDialogLayout.setVisibility(View.GONE);
-            darkOverlay.setVisibility(View.GONE);
-            enterBarcodeFab.setVisibility(View.VISIBLE);
-        });
-    }
-
     private static String fixedLengthString(String string) {
         // FORMAT SSCC TO 18 DIGITS
         return String.format("%1$"+ 18 + "s", string);
@@ -522,6 +459,11 @@ public class ScannerActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     };
+
+    private void toggleTorch(){
+        torch = !torch;
+        cameraControl.enableTorch(torch);
+    }
 
     private void doHaptics(int type) {
         switch (type){

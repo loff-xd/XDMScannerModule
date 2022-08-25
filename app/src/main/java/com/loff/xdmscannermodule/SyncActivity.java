@@ -64,45 +64,34 @@ public class SyncActivity extends AppCompatActivity {
                 serverSocket.bind(new InetSocketAddress(PORT));
 
                 socket = serverSocket.accept();
-                statusUpdate("\nHello Friend! Sync in progress...");
+                statusUpdate("\nConnection success!");
                 setBG(ContextCompat.getColor(context, R.color.wait_yellow));
 
                 BufferedReader data_in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 Writer data_out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 
-                // TIMESTAMP IN
-                String timestamp_in = data_in.readLine();
+                // SYNC_VER IN
+                String client_sync_version = data_in.readLine();
+                Log.d("SYNC_VER", client_sync_version);
 
                 // DATA IN
                 String data = data_in.readLine();
                 statusUpdate("\nRecveived bytes: " + data.length());
 
-                // TIMESTAMP OUT
-                String timestamp_out = "0";
-                for (int i=0; i<Backend.manifests.size(); i++) {
-                    if (Long.parseLong(Backend.manifests.get(i).lastModified) > Long.parseLong(timestamp_out)) {
-                        timestamp_out = Backend.manifests.get(i).lastModified;
-                    }
-                }
-                data_out.append(timestamp_out);
-                data_out.append("\n");
-                data_out.flush();
+                if (client_sync_version.equals("v2")) {
 
-                // DATA OUT
-                data_out.append(Backend.exportJson());
-                data_out.append("\n");
-                data_out.flush();
-                Log.d("DATA_OUT", "\nSent bytes: " + Backend.exportJson().length());
+                    // DATA OUT
+                    data_out.append(Backend.exportJson());
+                    data_out.append("\n");
+                    data_out.flush();
+                    Log.d("DATA_OUT", "\nSent bytes: " + Backend.exportJson().length());
 
-                // DATA CLOSE
-                socket.close();
-                serverSocket.close();
+                    // DATA CLOSE
+                    socket.close();
+                    serverSocket.close();
 
-                statusUpdate("\nProcessing...");
+                    statusUpdate("\nProcessing...");
 
-                Log.d("SYNC", timestamp_in + " > " + timestamp_out);
-
-                if (Long.parseLong(timestamp_in) > Long.parseLong(timestamp_out)) {
                     if (Backend.importJson(data)) {
                         Log.d("SYNC", "DOING UPDATE");
                         statusUpdate("\nSuccessfuly updated.");
@@ -112,18 +101,23 @@ public class SyncActivity extends AppCompatActivity {
                         statusUpdate("\nJSON import failed.");
                         setBG(ContextCompat.getColor(context, R.color.fail_red));
                     }
+
+                    closeActivity();
+
                 } else {
-                    Log.d("SYNC", "UP TO DATE");
-                    statusUpdate("\nUp to date.");
-                    setBG(ContextCompat.getColor(context, R.color.success_green));
+
+                    // DATA CLOSE
+                    socket.close();
+                    serverSocket.close();
+
+                    statusUpdate("\n\nUnsupported app version!\nPlease update X-Dock Manager");
+                    setBG(ContextCompat.getColor(context, R.color.fail_red));
                 }
-                closeActivity();
 
             } catch (SocketException ignore) {} catch (IOException e) {
                 e.printStackTrace();
-                statusUpdate("\nSync failed.");
+                statusUpdate("\n\nSync failed.");
                 setBG(ContextCompat.getColor(context, R.color.fail_red));
-                closeActivity();
             }
         }
 

@@ -6,29 +6,22 @@ import androidx.core.content.ContextCompat;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.MotionEvent;
-import android.view.View;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.Spinner;
 import android.widget.TextView;
 
 import java.io.File;
 
-public class MenuActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener, View.OnTouchListener {
+public class MenuActivity extends AppCompatActivity {
 
     Button btnBeginScanning;
     Button btnSync;
     TextView txtStatusText;
     SwipeRefreshLayout refreshLayout;
-    Spinner manifestSpinner;
-    boolean userAction = false;
     ArrayAdapter<String> xdManifestArrayAdapter;
 
 
@@ -55,10 +48,6 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
         btnBeginScanning.setOnClickListener(view -> {
             if (!refreshLayout.isRefreshing()) startActivity(new Intent(MenuActivity.this, ScannerActivity.class));
         });
-
-        // MANIFEST SELECTOR
-        manifestSpinner = findViewById(R.id.spinner_mainfest_selector);
-
         // PULL TO REFRESH
         refreshLayout.setOnRefreshListener(this::interfaceUpdate);
 
@@ -67,10 +56,6 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
 
         // SYNC BUTTON
         btnSync.setOnClickListener(view -> startActivity(new Intent(MenuActivity.this, SyncActivity.class)));
-
-        // SPINNER ONCLICK
-        manifestSpinner.setOnTouchListener(this);
-        manifestSpinner.setOnItemSelectedListener(this);
     }
 
     @Override
@@ -86,26 +71,6 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
     public void onRestart(){
         super.onRestart();
         interfaceUpdate();
-    }
-
-    @SuppressLint("ClickableViewAccessibility")
-    @Override
-    public boolean onTouch(View v, MotionEvent event) {
-        userAction = true;
-        return false;
-    }
-
-    @Override
-    public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-        if (userAction) {
-            Backend.changeManifest(Backend.manifest_list.get(i));
-            runOnUiThread(this::interfaceUpdate);
-            userAction = false;
-        }
-    }
-
-    @Override
-    public void onNothingSelected(AdapterView<?> adapterView) {
     }
 
     private void doBackendLoad(){
@@ -136,18 +101,13 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
 
         if (Backend.selectedManifest != null && Backend.manifest_list.size() != 0){
             xdManifestArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, Backend.manifest_list);
-            manifestSpinner.setAdapter(xdManifestArrayAdapter);
             btnBeginScanning.setEnabled(true);
 
             int scannedCount = 0;
-            int unknownCount = 0;
             int hrCount = 0;
             for (int i = 0; i < Backend.selectedManifest.ssccList.size(); i++) {
                 if (Backend.selectedManifest.ssccList.get(i).scanned) {
                     scannedCount++;
-                }
-                if (Backend.selectedManifest.ssccList.get(i).unknown) {
-                    unknownCount++;
                 }
                 if (Backend.selectedManifest.ssccList.get(i).highRisk) {
                     hrCount++;
@@ -157,17 +117,14 @@ public class MenuActivity extends AppCompatActivity implements AdapterView.OnIte
 
                         for (int i = 0; i < Backend.manifest_list.size(); i++) {
                             if (Backend.selectedManifest.manifestID.equals(Backend.manifest_list.get(i))) {
-                                manifestSpinner.setSelection(i);
                                 break;
                             }
                         }
 
-            String sb = "SSCCs: " +
-                    Backend.selectedManifest.ssccList.size() +
-                    " (Scanned: " + scannedCount + ")" +
-                    " (Extras: " + unknownCount + ")" +
-                    "\n\nHigh-Risk SSCCs: " + hrCount +
-                    "\n\nTotal Manifests: " + Backend.manifests.size();
+            String sb = "Manifest: " + Backend.selectedManifest.manifestID +
+                    "\n\n\nTotal SSCCs: " + Backend.selectedManifest.ssccList.size() +
+                    "\n\n    - Scanned: " + scannedCount +
+                    "\n    - High-Risk: " + hrCount;
 
             txtStatusText.setText(sb);
             if (scannedCount > 0) {
