@@ -378,10 +378,7 @@ public class ScannerActivity extends AppCompatActivity {
                     statusText.setText(String.format("%s: UNKNOWN", barcode));
 
                     runOnUiThread(() -> new AlertDialog.Builder(dialogContext)
-                            //.setMessage("SSCC: " + barcode + " is not in the manifest.\n\nIf it belongs to your store, would you like to add as missing carton?")
                             .setMessage("SSCC: " + barcode + " is not in the selected manifest.\n\nPlease check it is for your store and isolate for further action.")
-                            //.setPositiveButton("Yes", (dialogInterface, i) -> showUnknownSSCCDialog(barcode))
-                            //.setNegativeButton("No", null)
                             .setPositiveButton("OK", null)
                             .setIcon(android.R.drawable.ic_dialog_alert)
                             .show());

@@ -5,7 +5,7 @@
     <string name="scan_barcode">Scan Barcode</string>
     <string name="begin_scanning">Begin Scanning</string>
     <string name="lastfour_placeholder">0000</string>
-    <string name="jsonImportError">Failed to import JSON file, it may be missing or corrupt.\n\nPlease perform application sync to fix.</string>
+    <string name="jsonImportError">No manifest loaded.\n\nPlease perform application sync.</string>
     <string name="ready">Ready</string>
     <string name="xdt_data_file">xdt_mobile.json</string>
     <string name="resume_scanning">Resume Scanning</string>
@@ -22,4 +22,5 @@
     <string name="enter_barcode">enter barcode</string>
     <string name="xdt_data_temp_file">xdt_temp.json</string>
     <string name="torch">Torch</string>
+    <string name="xdt_update_file">update.apk</string>
 </resources>
