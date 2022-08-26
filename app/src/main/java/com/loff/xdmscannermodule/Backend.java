@@ -329,14 +329,5 @@ public class Backend {
 
     }
 
-    public static void changeManifest(String selectedManifestID){
-        for (int i=0; i<manifests.size(); i++){
-            if (manifests.get(i).manifestID.equals(selectedManifestID)){
-                selectedManifest = manifests.get(i);
-                break;
-            }
-        }
-    }
-
 
 }

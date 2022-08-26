@@ -17,6 +17,7 @@ import android.os.Vibrator;
 import android.text.InputType;
 import android.util.Log;
 import android.util.Size;
+import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -29,7 +30,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraControl;
 import androidx.camera.core.CameraSelector;
+import androidx.camera.core.FocusMeteringAction;
 import androidx.camera.core.ImageAnalysis;
+import androidx.camera.core.MeteringPoint;
+import androidx.camera.core.MeteringPointFactory;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
@@ -46,7 +50,6 @@ import com.google.mlkit.vision.common.InputImage;
 
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
 
 
 public class ScannerActivity extends AppCompatActivity {
@@ -80,7 +83,6 @@ public class ScannerActivity extends AppCompatActivity {
     MediaPlayer soundIDwarn;
     MediaPlayer soundIDerror;
     Vibrator vibrator;
-    Executor HapticRunner;
     final int H_NORMAL = 0;
     final int H_WARN = 1;
     final int H_ERROR = 2;
@@ -88,6 +90,7 @@ public class ScannerActivity extends AppCompatActivity {
 
     private int progressCounter = 0;
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -95,7 +98,6 @@ public class ScannerActivity extends AppCompatActivity {
 
         // HAPTICS
         vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-        HapticRunner = getMainExecutor();
 
         // SCAN BUTTON
         scanBarcodeFab = findViewById(R.id.fabScan);
@@ -130,6 +132,18 @@ public class ScannerActivity extends AppCompatActivity {
         surfaceView = findViewById(R.id.overlay);
         surfaceView.setZOrderOnTop(true);
         holder = surfaceView.getHolder();
+
+        // TAP TO REFOCUS
+        previewView.setOnTouchListener((view, motionEvent) -> {
+            if (motionEvent.getAction() == MotionEvent.ACTION_UP) {
+                MeteringPointFactory mf = previewView.getMeteringPointFactory();
+                MeteringPoint focusPoint = mf.createPoint(view.getWidth()/2f, view.getHeight()/2f);
+                cameraControl.startFocusAndMetering(new FocusMeteringAction.Builder(focusPoint).build());
+                return true;
+            } else {
+                return false;
+            }
+        });
 
         // CODE SCANNER PREVIEW
         holder.addCallback(new SurfaceHolder.Callback() {
