@@ -30,7 +30,6 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.Locale;
 
 interface syncCallback {
     void callback();
@@ -92,11 +91,7 @@ public class MenuActivity extends AppCompatActivity implements syncCallback {
         }).start();
 
         // PULL TO REFRESH
-        refreshLayout.setOnRefreshListener(() -> {
-            netModule.interrupt();
-            netModule.start();
-            interfaceUpdate();
-        });
+        refreshLayout.setOnRefreshListener(this::interfaceUpdate);
     }
 
     @Override
@@ -133,7 +128,8 @@ public class MenuActivity extends AppCompatActivity implements syncCallback {
                     runOnUiThread(this::interfaceUpdate);
                 } else {
                     runOnUiThread(() -> {
-                        txtStatusText.setText(String.format(Locale.ENGLISH,"%d\n\nIP: %s", R.string.jsonImportError, ip));
+                        String sb = getString(R.string.jsonImportError) + "\n\nIP: " + ip;
+                        txtStatusText.setText(sb);
                         refreshLayout.setRefreshing(false);
                         btnBeginScanning.setEnabled(false);
                     });
@@ -216,7 +212,7 @@ public class MenuActivity extends AppCompatActivity implements syncCallback {
         }
 
         @Override
-        public void run() {
+        public void run() { // TODO DISCARD SYNC IF MATCHING EXISTING
 
             try {
                 serverSocket = new ServerSocket();

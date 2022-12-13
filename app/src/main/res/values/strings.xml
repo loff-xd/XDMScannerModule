@@ -14,6 +14,7 @@
     <string name="scan">SCAN</string>
     <string name="gtin">GTIN</string>
     <string name="qty">Qty</string>
+    <string name="back">Back</string>
     <string name="stop">Stop</string>
     <string name="high_risk">High-Risk</string>
     <string name="sync">Sync</string>
@@ -22,5 +23,6 @@
     <string name="enter_barcode">enter barcode</string>
     <string name="xdt_data_temp_file">xdt_temp.json</string>
     <string name="torch">Torch</string>
+    <string name="mark_missing">Mark SSCC as missing</string>
     <string name="xdt_update_file">update.apk</string>
 </resources>

@@ -1,6 +1,8 @@
 package com.loff.xdmscannermodule;
 
 import android.content.Context;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -20,6 +22,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Serializable;
 import java.io.Writer;
 import java.util.ArrayList;
 
@@ -45,7 +48,7 @@ public class Backend {
         }
     }
 
-    public static class SSCC {
+    public static class SSCC implements Serializable {
         String ssccID;
         Boolean scanned = false;
         Boolean unknown = false;
@@ -76,12 +79,12 @@ public class Backend {
     }
 
     public static void exportJsonAsync(Context context) {
-            WorkManager workmanager = WorkManager.getInstance(context);
-            OneTimeWorkRequest request = new OneTimeWorkRequest.Builder(saveWorker.class).build();
-            workmanager.enqueueUniqueWork("fileSave", ExistingWorkPolicy.REPLACE, request);
+        WorkManager workmanager = WorkManager.getInstance(context);
+        OneTimeWorkRequest request = new OneTimeWorkRequest.Builder(saveWorker.class).build();
+        workmanager.enqueueUniqueWork("fileSave", ExistingWorkPolicy.REPLACE, request);
     }
 
-    public static ListenableWorker.Result exportJsonFile(){
+    public static ListenableWorker.Result exportJsonFile() {
         Writer writer;
         try {
             Log.v("BACKEND", "WRITE NEW DATA TO TEMP FILE");
@@ -173,7 +176,7 @@ public class Backend {
     }
 
     public static void syncSelectedManifestToDB() {
-        for (int i=0; i<manifests.size(); i++) {
+        for (int i = 0; i < manifests.size(); i++) {
             if (manifests.get(i).manifestID.equals(selectedManifest.manifestID)) {
                 manifests.remove(i);
                 manifests.add(selectedManifest);
@@ -263,7 +266,7 @@ public class Backend {
             });
 
             manifest_list = new ArrayList<>();
-            for (int i=0; i<manifests.size(); i++) {
+            for (int i = 0; i < manifests.size(); i++) {
                 manifest_list.add(manifests.get(i).manifestID);
             }
 

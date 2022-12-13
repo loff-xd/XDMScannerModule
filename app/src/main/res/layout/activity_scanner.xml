@@ -13,7 +13,7 @@
         android:orientation="vertical">
 
         <androidx.appcompat.widget.Toolbar
-            android:id="@+id/tb_toolBar"
+            android:id="@+id/tb_toolBarSSCC"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:alpha="255"
@@ -53,37 +53,10 @@
 
         </androidx.appcompat.widget.Toolbar>
 
-        <ScrollView
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerView"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="10">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-
-                <TextView
-                    android:id="@+id/tv_dataList"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:fontFamily="monospace"
-                    android:padding="8dp"
-                    android:textColor="?android:attr/textColorPrimary"
-                    android:textSize="16sp" />
-            </LinearLayout>
-        </ScrollView>
-
-        <TextView
-            android:id="@+id/tx_statusBar"
-            android:layout_width="match_parent"
-            android:layout_height="32dp"
-            android:layout_weight="0"
-            android:background="#CCCCCC"
-            android:fontFamily="monospace"
-            android:paddingHorizontal="16dp"
-            android:text="@string/ready"
-            android:textColor="#000000" />
+            android:layout_height="match_parent" />
 
     </LinearLayout>
 
