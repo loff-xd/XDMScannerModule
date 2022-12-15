@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+              android:orientation="horizontal"
+              android:padding="8dp"
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+    android:focusable="true"
+    android:foreground="?android:attr/selectableItemBackground"
+    android:background="?android:selectableItemBackground"
+    android:baselineAligned="false">
+
+  <androidx.constraintlayout.widget.ConstraintLayout
+      android:layout_width="wrap_content"
+      android:layout_height="match_parent"
+      android:layout_weight="0">
+
+    <ImageView
+        android:id="@+id/img_scanned_status"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        tools:ignore="ContentDescription"
+        tools:src="@drawable/ic_unscanned" />
+
+    <ImageView
+        android:id="@+id/img_highriskmarker"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/img_scanned_status"
+        app:srcCompat="@drawable/ic_highriskmarker"
+        tools:ignore="ContentDescription" />
+  </androidx.constraintlayout.widget.ConstraintLayout>
+
+  <TextView
+      android:id="@+id/tv_sscc_short"
+      android:layout_width="wrap_content"
+      android:layout_height="match_parent"
+      android:layout_weight="0"
+      android:paddingStart="4dp"
+      android:paddingEnd="4dp"
+      android:textAppearance="@style/TextAppearance.AppCompat.Display1" />
+
+  <LinearLayout
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_gravity="center"
+      android:padding="5dp"
+      android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/tv_item_sscc"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        tools:text="0000" />
+
+    <TextView
+        android:id="@+id/tv_item_subtext"
+        android:layout_width="wrap_content"
+        android:layout_height="18dp"
+        tools:text="@tools:sample/lorem[4]" />
+  </LinearLayout>
+
+</LinearLayout>

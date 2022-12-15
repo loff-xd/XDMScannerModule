@@ -30,7 +30,6 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.Locale;
 
 interface syncCallback {
     void callback();
@@ -92,11 +91,7 @@ public class MenuActivity extends AppCompatActivity implements syncCallback {
         }).start();
 
         // PULL TO REFRESH
-        refreshLayout.setOnRefreshListener(() -> {
-            netModule.interrupt();
-            netModule.start();
-            interfaceUpdate();
-        });
+        refreshLayout.setOnRefreshListener(this::interfaceUpdate);
     }
 
     @Override
@@ -133,7 +128,8 @@ public class MenuActivity extends AppCompatActivity implements syncCallback {
                     runOnUiThread(this::interfaceUpdate);
                 } else {
                     runOnUiThread(() -> {
-                        txtStatusText.setText(String.format(Locale.ENGLISH,"%d\n\nIP: %s", R.string.jsonImportError, ip));
+                        String sb = getString(R.string.jsonImportError) + "\n\nIP: " + ip;
+                        txtStatusText.setText(sb);
                         refreshLayout.setRefreshing(false);
                         btnBeginScanning.setEnabled(false);
                     });
@@ -154,12 +150,16 @@ public class MenuActivity extends AppCompatActivity implements syncCallback {
 
             int scannedCount = 0;
             int hrCount = 0;
+            int missingCount = 0;
             for (int i = 0; i < Backend.selectedManifest.ssccList.size(); i++) {
                 if (Backend.selectedManifest.ssccList.get(i).scanned) {
                     scannedCount++;
                 }
                 if (Backend.selectedManifest.ssccList.get(i).highRisk) {
                     hrCount++;
+                }
+                if (Backend.selectedManifest.ssccList.get(i).dilStatus.equals("missing")) {
+                    missingCount++;
                 }
             }
 
@@ -174,6 +174,7 @@ public class MenuActivity extends AppCompatActivity implements syncCallback {
                     "\n\n\nTotal SSCCs: " + Backend.selectedManifest.ssccList.size() +
                     "\n\n    - Scanned: " + scannedCount +
                     "\n    - High-Risk: " + hrCount +
+                    "\n    - Missing: " + missingCount +
                     "\n\n\n IP: " + ip;
 
             txtStatusText.setText(sb);

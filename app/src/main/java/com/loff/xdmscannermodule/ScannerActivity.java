@@ -4,6 +4,7 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -40,6 +41,9 @@ import androidx.camera.view.PreviewView;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.mlkit.vision.barcode.BarcodeScanner;
@@ -61,40 +65,43 @@ public class ScannerActivity extends AppCompatActivity {
     private ConstraintLayout articleDialogLayout;
     private View darkOverlay;
     private FloatingActionButton enterBarcodeFab;
-    TextView tbText;
+    private TextView tbText;
 
-    BarcodeScannerOptions options;
-    BarcodeScanner barcodeScanner;
-    PreviewView previewView;
-    ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
-    Camera camera;
-    CameraControl cameraControl;
-    boolean torch = false;
+    private BarcodeScanner barcodeScanner;
+    private PreviewView previewView;
+    private ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
+    private CameraControl cameraControl;
+    private boolean torch = false;
 
-    SurfaceView surfaceView;
-    SurfaceHolder holder;
-    Paint paint;
-
-    private TextView dataList;
-    private TextView statusText;
+    private SurfaceView surfaceView;
+    private SurfaceHolder holder;
+    private ListAdapter adapter;
+    private RecyclerView.LayoutManager layoutManager;
+    private String ssccViewItemChanged = "";
 
     // BEEPS + HAPTICS
-    MediaPlayer soundIDbeep;
-    MediaPlayer soundIDwarn;
-    MediaPlayer soundIDerror;
-    Vibrator vibrator;
-    final int H_NORMAL = 0;
-    final int H_WARN = 1;
-    final int H_ERROR = 2;
-    final VibrationEffect normalPattern = VibrationEffect.createOneShot(80, VibrationEffect.DEFAULT_AMPLITUDE);
+    private MediaPlayer soundIDbeep;
+    private MediaPlayer soundIDwarn;
+    private MediaPlayer soundIDerror;
+    private Vibrator vibrator;
+    private final int H_NORMAL = 0;
+    private final int H_WARN = 1;
+    private final int H_ERROR = 2;
+    private final VibrationEffect normalPattern = VibrationEffect.createOneShot(80, VibrationEffect.DEFAULT_AMPLITUDE);
 
     private int progressCounter = 0;
+    private final Size accuracy = new Size(1440, 2560);
+    // private final Size speed = new Size(1080, 1920);
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_scanner);
+
+        // LAYOUT
+        RecyclerView recyclerView = findViewById(R.id.recyclerView);
+        layoutManager = new LinearLayoutManager(this);
 
         // HAPTICS
         vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
@@ -126,7 +133,7 @@ public class ScannerActivity extends AppCompatActivity {
         // CODE SCANNER
         previewView = findViewById(R.id.previewView);
         cameraProviderFuture = ProcessCameraProvider.getInstance(this);
-        options = new BarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_EAN_13, Barcode.FORMAT_CODE_128).build();
+        BarcodeScannerOptions options = new BarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_EAN_13, Barcode.FORMAT_CODE_128).build();
         barcodeScanner = BarcodeScanning.getClient(options);
 
         surfaceView = findViewById(R.id.overlay);
@@ -174,22 +181,28 @@ public class ScannerActivity extends AppCompatActivity {
         });
 
         // CREATE DATA LIST
-        dataList = findViewById(R.id.tv_dataList);
+        adapter = new ListAdapter(this, Backend.selectedManifest.ssccList, sscc -> {
+            Intent intent = new Intent(ScannerActivity.this, SSCCViewActivity.class);
+            intent.putExtra("SSCC", sscc.ssccID);
+            startActivity(intent);
+            ssccViewItemChanged = sscc.ssccID;
+        });
+        recyclerView.setAdapter(adapter);
+        recyclerView.setLayoutManager(layoutManager);
         tbText = findViewById(R.id.tb_text);
-        statusText = findViewById(R.id.tx_statusBar);
     }
 
     private void startCamera(ProcessCameraProvider cameraProvider) {
         // Camera setup
         cameraProvider.unbindAll();
         CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
-        Preview preview = new Preview.Builder().setTargetResolution(new Size(1080, 1920)).build();
+        Preview preview = new Preview.Builder().setTargetResolution(accuracy).build(); // CHANGE FOR SHOOTING MODES
 
         preview.setSurfaceProvider(previewView.getSurfaceProvider());
 
         // Image analysis setup
         ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).build();
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).setImageQueueDepth(1).build(); // CHANGE FOR SHOOTING MODES
 
         imageAnalysis.setAnalyzer(getMainExecutor(), imageProxy -> {
             // Barcode scanning
@@ -210,7 +223,7 @@ public class ScannerActivity extends AppCompatActivity {
         });
 
         // Begin + bind
-        camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis);
+        Camera camera = cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis);
         cameraControl = camera.getCameraControl();
         cameraControl.enableTorch(torch);
     }
@@ -278,7 +291,7 @@ public class ScannerActivity extends AppCompatActivity {
     public void drawOverlay() {
         Canvas canvas = holder.lockCanvas();
 
-        paint = new Paint();
+        Paint paint = new Paint();
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(Color.parseColor("#FF0000"));
         paint.setStrokeWidth(6);
@@ -326,17 +339,16 @@ public class ScannerActivity extends AppCompatActivity {
     private void checkBarcode(String barcode) {
         Context dialogContext = this;
         new Thread(() -> {
-            Context context = getApplicationContext();
             boolean matchFound = false;
             if (barcode.length() > 16) {
                 for (int i = 0; i < Backend.selectedManifest.ssccList.size(); i++) {
                     if (barcode.contains(Backend.selectedManifest.ssccList.get(i).ssccID)) {
                         // ALREADY SCANNED
+
                         if (Backend.selectedManifest.ssccList.get(i).scanned) {
                             matchFound = true;
                             soundIDerror.start();
                             doHaptics(H_ERROR);
-                            setBG(ContextCompat.getColor(context, R.color.fail_red));
 
                             runOnUiThread(() -> new AlertDialog.Builder(dialogContext)
                                     .setMessage("SSCC already scanned.")
@@ -346,13 +358,18 @@ public class ScannerActivity extends AppCompatActivity {
                         }
 
                         Backend.selectedManifest.ssccList.get(i).scanned = true;
-                        setBG(ContextCompat.getColor(context, R.color.success_green));
+
+                        final int scrollPos = i;
+                        runOnUiThread(() -> {
+                            layoutManager.scrollToPosition(scrollPos);
+                            adapter.notifyItemChanged(scrollPos);
+                            // MANUAL RIPPLE TODO
+                        });
 
                         // IS HIGH RISK
                         if (Backend.selectedManifest.ssccList.get(i).highRisk) {
                             soundIDwarn.start();
                             doHaptics(H_WARN);
-                            statusText.setText(String.format("%s: HIGH-RISK", barcode));
 
                             runOnUiThread(() -> new AlertDialog.Builder(dialogContext)
                                     .setMessage("This is a high-risk carton.\n Please action accordingly.")
@@ -362,7 +379,6 @@ public class ScannerActivity extends AppCompatActivity {
                             // NORMAL SCAN
                             soundIDbeep.start();
                             doHaptics(H_NORMAL);
-                            statusText.setText(String.format("%s: OK", barcode));
                         }
                         matchFound = true;
                         break;
@@ -374,8 +390,6 @@ public class ScannerActivity extends AppCompatActivity {
                     // UNKNOWN CARTON IS SSCC
                     soundIDerror.start();
                     doHaptics(H_ERROR);
-                    setBG(ContextCompat.getColor(context, R.color.fail_red));
-                    statusText.setText(String.format("%s: UNKNOWN", barcode));
 
                     runOnUiThread(() -> new AlertDialog.Builder(dialogContext)
                             .setMessage("SSCC: " + barcode + " is not in the selected manifest.\n\nPlease check it is for your store and isolate for further action.")
@@ -390,8 +404,6 @@ public class ScannerActivity extends AppCompatActivity {
                 // UNKNOWN CARTON NOT SSCC
                 soundIDerror.start();
                 doHaptics(H_ERROR);
-                setBG(ContextCompat.getColor(context, R.color.fail_red));
-                statusText.setText(String.format("%s: UNKNOWN", barcode));
 
                 runOnUiThread(() -> new AlertDialog.Builder(dialogContext)
                                 .setMessage("Barcode: " + barcode + " isn't a SSCC")
@@ -416,23 +428,20 @@ public class ScannerActivity extends AppCompatActivity {
     private void doDataRefresh(){
         new Thread(() -> {
             int scannedTally = 0;
-            StringBuilder dataText = new StringBuilder();
             for (int i=0; i < Backend.selectedManifest.ssccList.size(); i++) {
-                dataText.append(Backend.selectedManifest.ssccList.get(i).ssccID.substring(Backend.selectedManifest.ssccList.get(i).ssccID.length() - 4));
-                if (Backend.selectedManifest.ssccList.get(i).scanned){dataText.append(" [███] [ "); scannedTally+=1;} else {dataText.append(" [░░░] [ ");}
-
-                dataText.append(fixedLengthString(Backend.selectedManifest.ssccList.get(i).ssccID));
-                dataText.append(" ]\n");
-                dataText.append("     - ").append(Backend.selectedManifest.ssccList.get(i).description);
-                if (Backend.selectedManifest.ssccList.get(i).highRisk) {dataText.append("\n     - ").append("HIGH-RISK");}
-                dataText.append("\n\n");
+                if (Backend.selectedManifest.ssccList.get(i).scanned) {scannedTally += 1;} // UPDATE SCAN TALLY
             }
-            Backend.selectedManifest.lastModified = String.valueOf(System.currentTimeMillis());
+            Backend.selectedManifest.lastModified = String.valueOf(System.currentTimeMillis()); // UPDATE LASTMODIFIED
 
             int finalScannedTally = scannedTally;
-            String dataListText = dataText.toString();
             runOnUiThread(() -> {
-                dataList.setText(dataListText);
+                if (!ssccViewItemChanged.equals("")) {
+                    for (int i = 0; i < Backend.selectedManifest.ssccList.size(); i++) {
+                        if (ssccViewItemChanged.equals(Backend.selectedManifest.ssccList.get(i).ssccID)) {
+                            adapter.notifyItemChanged(i);
+                        }
+                    }
+                }
                 tbText.setText(String.format("MANIFEST: %s - %s/%s", Backend.selectedManifest.manifestID, finalScannedTally, Backend.selectedManifest.ssccList.size()));
             });
 
@@ -442,11 +451,6 @@ public class ScannerActivity extends AppCompatActivity {
     private void doSaveClose(){
         Backend.selectedManifest.lastModified = String.valueOf(System.currentTimeMillis());
         this.finish();
-    }
-
-    private static String fixedLengthString(String string) {
-        // FORMAT SSCC TO 18 DIGITS
-        return String.format("%1$"+ 18 + "s", string);
     }
 
     Runnable normalHaptic = () -> vibrator.vibrate(normalPattern);
@@ -490,9 +494,5 @@ public class ScannerActivity extends AppCompatActivity {
                 new Thread(normalHaptic).start();
                 break;
         }
-    }
-
-    private void setBG(int color) {
-        runOnUiThread(() -> findViewById(R.id.tx_statusBar).setBackgroundColor(color));
     }
 }

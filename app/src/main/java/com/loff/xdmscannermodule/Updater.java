@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.util.Log;
-import android.widget.Toast;
 
 import androidx.core.content.FileProvider;
 
@@ -26,7 +25,7 @@ import java.nio.channels.ReadableByteChannel;
 @SuppressWarnings("deprecation")
 public class Updater {
 
-    static int version = 1100;  // APPLICATION VERSION
+    static int version = 1200;  // TODO APPLICATION VERSION
     String dl_url = "";
     String changelog = "";
 
