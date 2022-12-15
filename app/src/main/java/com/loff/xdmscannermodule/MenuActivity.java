@@ -150,12 +150,16 @@ public class MenuActivity extends AppCompatActivity implements syncCallback {
 
             int scannedCount = 0;
             int hrCount = 0;
+            int missingCount = 0;
             for (int i = 0; i < Backend.selectedManifest.ssccList.size(); i++) {
                 if (Backend.selectedManifest.ssccList.get(i).scanned) {
                     scannedCount++;
                 }
                 if (Backend.selectedManifest.ssccList.get(i).highRisk) {
                     hrCount++;
+                }
+                if (Backend.selectedManifest.ssccList.get(i).dilStatus.equals("missing")) {
+                    missingCount++;
                 }
             }
 
@@ -170,6 +174,7 @@ public class MenuActivity extends AppCompatActivity implements syncCallback {
                     "\n\n\nTotal SSCCs: " + Backend.selectedManifest.ssccList.size() +
                     "\n\n    - Scanned: " + scannedCount +
                     "\n    - High-Risk: " + hrCount +
+                    "\n    - Missing: " + missingCount +
                     "\n\n\n IP: " + ip;
 
             txtStatusText.setText(sb);
@@ -212,7 +217,7 @@ public class MenuActivity extends AppCompatActivity implements syncCallback {
         }
 
         @Override
-        public void run() { // TODO DISCARD SYNC IF MATCHING EXISTING
+        public void run() {
 
             try {
                 serverSocket = new ServerSocket();

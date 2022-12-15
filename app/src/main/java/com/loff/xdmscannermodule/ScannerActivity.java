@@ -36,7 +36,6 @@ import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.MeteringPoint;
 import androidx.camera.core.MeteringPointFactory;
 import androidx.camera.core.Preview;
-import androidx.camera.core.processing.SurfaceProcessorNode;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
 import androidx.constraintlayout.widget.ConstraintLayout;
@@ -77,8 +76,8 @@ public class ScannerActivity extends AppCompatActivity {
     private SurfaceView surfaceView;
     private SurfaceHolder holder;
     private ListAdapter adapter;
-    private RecyclerView recyclerView;
     private RecyclerView.LayoutManager layoutManager;
+    private String ssccViewItemChanged = "";
 
     // BEEPS + HAPTICS
     private MediaPlayer soundIDbeep;
@@ -92,7 +91,7 @@ public class ScannerActivity extends AppCompatActivity {
 
     private int progressCounter = 0;
     private final Size accuracy = new Size(1440, 2560);
-    // private final Size speed = new Size(1080, 1920); TODO
+    // private final Size speed = new Size(1080, 1920);
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -101,7 +100,7 @@ public class ScannerActivity extends AppCompatActivity {
         setContentView(R.layout.activity_scanner);
 
         // LAYOUT
-        recyclerView = findViewById(R.id.recyclerView);
+        RecyclerView recyclerView = findViewById(R.id.recyclerView);
         layoutManager = new LinearLayoutManager(this);
 
         // HAPTICS
@@ -182,14 +181,11 @@ public class ScannerActivity extends AppCompatActivity {
         });
 
         // CREATE DATA LIST
-        adapter = new ListAdapter(this, Backend.selectedManifest.ssccList, new ListAdapter.OnSSCCClickedListener() {
-            @Override
-            public void onSSCCClicked(Backend.SSCC sscc) {
-                // TODO OPEN SSCC VIEW
-                Intent intent = new Intent(ScannerActivity.this, SSCCViewActivity.class);
-                intent.putExtra("SSCC", sscc);
-                startActivity(intent);
-            }
+        adapter = new ListAdapter(this, Backend.selectedManifest.ssccList, sscc -> {
+            Intent intent = new Intent(ScannerActivity.this, SSCCViewActivity.class);
+            intent.putExtra("SSCC", sscc.ssccID);
+            startActivity(intent);
+            ssccViewItemChanged = sscc.ssccID;
         });
         recyclerView.setAdapter(adapter);
         recyclerView.setLayoutManager(layoutManager);
@@ -200,13 +196,13 @@ public class ScannerActivity extends AppCompatActivity {
         // Camera setup
         cameraProvider.unbindAll();
         CameraSelector cameraSelector = new CameraSelector.Builder().requireLensFacing(CameraSelector.LENS_FACING_BACK).build();
-        Preview preview = new Preview.Builder().setTargetResolution(accuracy).build(); //TODO
+        Preview preview = new Preview.Builder().setTargetResolution(accuracy).build(); // CHANGE FOR SHOOTING MODES
 
         preview.setSurfaceProvider(previewView.getSurfaceProvider());
 
         // Image analysis setup
         ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
-                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).setImageQueueDepth(1).build(); //TODO
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST).setImageQueueDepth(1).build(); // CHANGE FOR SHOOTING MODES
 
         imageAnalysis.setAnalyzer(getMainExecutor(), imageProxy -> {
             // Barcode scanning
@@ -434,14 +430,18 @@ public class ScannerActivity extends AppCompatActivity {
             int scannedTally = 0;
             for (int i=0; i < Backend.selectedManifest.ssccList.size(); i++) {
                 if (Backend.selectedManifest.ssccList.get(i).scanned) {scannedTally += 1;} // UPDATE SCAN TALLY
-
-
             }
             Backend.selectedManifest.lastModified = String.valueOf(System.currentTimeMillis()); // UPDATE LASTMODIFIED
 
             int finalScannedTally = scannedTally;
             runOnUiThread(() -> {
-                // adapter.notifyDataSetChanged(); MAY NOT BE NEEDED TODO
+                if (!ssccViewItemChanged.equals("")) {
+                    for (int i = 0; i < Backend.selectedManifest.ssccList.size(); i++) {
+                        if (ssccViewItemChanged.equals(Backend.selectedManifest.ssccList.get(i).ssccID)) {
+                            adapter.notifyItemChanged(i);
+                        }
+                    }
+                }
                 tbText.setText(String.format("MANIFEST: %s - %s/%s", Backend.selectedManifest.manifestID, finalScannedTally, Backend.selectedManifest.ssccList.size()));
             });
 

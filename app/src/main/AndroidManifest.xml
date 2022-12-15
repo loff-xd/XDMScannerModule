@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="com.loff.xdmscannermodule">
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-feature android:name="android.hardware.camera.any" />
 
@@ -20,7 +19,10 @@
         android:theme="@style/Theme.XDMScannerModule">
         <activity
             android:name=".SSCCViewActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.XDMScannerModule.NoActionBar"
+            tools:ignore="LockedOrientationActivity"/>
         <activity
             android:name=".MenuActivity"
             android:configChanges="orientation|keyboardHidden"

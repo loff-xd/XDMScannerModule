@@ -47,6 +47,8 @@ public class ListAdapter extends RecyclerView.Adapter<ListAdapter.ViewHolder> {
         // IMAGE FOR SCANNED STATUS + HR FLAG
         if (ssccs.get(position).scanned) {
             holder.scanned_img.setImageResource(R.drawable.ic_scanned);
+        } else if (ssccs.get(position).dilStatus.equals("missing")) {
+            holder.scanned_img.setImageResource(R.drawable.ic_missing);
         } else {
             holder.scanned_img.setImageResource(R.drawable.ic_unscanned);
         }

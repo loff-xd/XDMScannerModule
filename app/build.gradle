@@ -9,8 +9,8 @@ android {
         applicationId "com.loff.xdmscannermodule"
         minSdk 28
         targetSdk 33
-        versionCode 1
-        versionName "1.0"
+        versionCode 1200
+        versionName "1.2.0.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -30,6 +30,7 @@ android {
     }
     compileSdk 33
     buildToolsVersion '33.0.0'
+    namespace 'com.loff.xdmscannermodule'
 }
 
 def camerax_version = '1.3.0-alpha02'

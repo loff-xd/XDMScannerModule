@@ -1,8 +1,6 @@
 package com.loff.xdmscannermodule;
 
 import android.content.Context;
-import android.os.Parcel;
-import android.os.Parcelable;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -55,12 +53,12 @@ public class Backend {
         String description = "";
         Boolean highRisk = false;
         String scannedInManifest;
-        String dilStatus;
-        String dilComment;
+        String dilStatus = "";
+        String dilComment = "";
         ArrayList<Article> articles = new ArrayList<>();
     }
 
-    public static class Article {
+    public static class Article implements Serializable {
         String code;
         String desc;
         String GTIN;
@@ -114,7 +112,7 @@ public class Backend {
     @NonNull
     public static String exportJson() {
         // WRITE SELECTED TO ARRAY
-        syncSelectedManifestToDB();
+        //syncSelectedManifestToDB();
 
         // WRITE TO JSON
         try {
@@ -175,23 +173,13 @@ public class Backend {
         }
     }
 
-    public static void syncSelectedManifestToDB() {
-        for (int i = 0; i < manifests.size(); i++) {
-            if (manifests.get(i).manifestID.equals(selectedManifest.manifestID)) {
-                manifests.remove(i);
-                manifests.add(selectedManifest);
-                break;
-            }
-        }
-    }
-
     public static boolean importJson(String json_string_in) {
 
         try {
             JSONObject jsonIn = new JSONObject(json_string_in);
             JSONArray jmanifests = jsonIn.getJSONArray("Manifests");
+            ArrayList<XDManifest> manifestsOld = manifests;
             manifests.clear();
-
 
             for (int i = 0; i < jmanifests.length(); i++) {
                 XDManifest newManifest = new XDManifest();
@@ -218,6 +206,10 @@ public class Backend {
                     }
                     if (jSSCC.has("Unknown")) {
                         newSSCC.unknown = jSSCC.getBoolean("Unknown");
+                    }
+                    if (jSSCC.has("DIL Status")) {
+                        newSSCC.dilStatus = jSSCC.getString("DIL Status");
+                        newSSCC.dilComment = jSSCC.getString("DIL Comment");
                     }
 
                     // SSCC ARTICLES READ
@@ -271,6 +263,15 @@ public class Backend {
             }
 
             selectedManifest = manifests.get(manifests.size() - 1);
+
+            if (manifests.size() == 1){
+                if (manifests.get(0).manifestID.equals(manifestsOld.get(0).manifestID)){
+                    manifests.clear();
+                    manifests = manifestsOld;
+                    manifestsOld.clear();
+                    System.out.println("KEEP OLD MANI");
+                }
+            }
 
             return true;
 
