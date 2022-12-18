@@ -249,9 +249,7 @@ public class ScannerActivity extends AppCompatActivity {
         soundIDbeep = null;
         soundIDerror = null;
         soundIDwarn = null;
-        if (Backend.manifests.size() > 0) {
-            Backend.exportJsonAsync(getApplicationContext());
-        }
+        Backend.saveData(getApplicationContext());
     }
 
     @Override
@@ -417,7 +415,7 @@ public class ScannerActivity extends AppCompatActivity {
 
         // SAVE PROGRESS EVERY 3 CARTONS
         if (progressCounter > 2) {
-            Backend.exportJsonAsync(getApplicationContext());
+            Backend.saveData(getApplicationContext());
             progressCounter = 0;
         } else {
             progressCounter++;
