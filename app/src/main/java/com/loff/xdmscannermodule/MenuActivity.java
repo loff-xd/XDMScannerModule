@@ -14,14 +14,12 @@ import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.text.format.Formatter;
 import android.util.Log;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
@@ -40,13 +38,13 @@ public class MenuActivity extends AppCompatActivity implements syncCallback {
     Button btnBeginScanning;
     TextView txtStatusText;
     SwipeRefreshLayout refreshLayout;
-    ArrayAdapter<String> xdManifestArrayAdapter;
     Updater updater;
     AlertDialog.Builder dialog;
     Thread netModule;
     String ip = "";
 
     public void callback(){
+        Backend.saveData(getApplicationContext());
         runOnUiThread(this::interfaceUpdate);
     }
 
@@ -59,9 +57,6 @@ public class MenuActivity extends AppCompatActivity implements syncCallback {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.MANAGE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             ActivityCompat.requestPermissions(MenuActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 5);
         }
-
-        Backend.xdtMobileJsonFile = new File(this.getExternalFilesDir(null), getString(R.string.xdt_data_file));
-        Backend.xdtMobileJsonTempFile = new File(this.getExternalFilesDir(null), getString(R.string.xdt_data_temp_file));
 
         btnBeginScanning = findViewById(R.id.btn_begin_scanning);
         txtStatusText = findViewById(R.id.txt_status_text);
@@ -105,9 +100,7 @@ public class MenuActivity extends AppCompatActivity implements syncCallback {
     public void onStop() {
         super.onStop();
         Log.v("MenuActivity", "ONSTOP SAVE");
-        if (Backend.manifests.size() > 0) {
-            Backend.exportJsonAsync(getApplicationContext());
-        }
+        Backend.saveData(getApplicationContext());
         netModule.interrupt();
     }
 
@@ -118,11 +111,11 @@ public class MenuActivity extends AppCompatActivity implements syncCallback {
     }
 
     private void doBackendLoad() {
-        if (Backend.manifests.size() == 0) {
+        if (Backend.selectedManifest == null) {
             refreshLayout.setRefreshing(true);
             new Thread(() -> {
                 Log.v("MenuActivity", "backend_load");
-                boolean loadSuccess = Backend.importJsonFile();
+                boolean loadSuccess = Backend.loadData(getApplicationContext());
 
                 if (loadSuccess) {
                     runOnUiThread(this::interfaceUpdate);
@@ -144,8 +137,7 @@ public class MenuActivity extends AppCompatActivity implements syncCallback {
         refreshLayout.setRefreshing(true);
         Log.v("MenuActivity", "interface_update");
 
-        if (Backend.selectedManifest != null && Backend.manifest_list.size() != 0) {
-            xdManifestArrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, Backend.manifest_list);
+        if (Backend.selectedManifest != null) {
             btnBeginScanning.setEnabled(true);
 
             int scannedCount = 0;
@@ -163,12 +155,6 @@ public class MenuActivity extends AppCompatActivity implements syncCallback {
                 }
             }
 
-
-            for (int i = 0; i < Backend.manifest_list.size(); i++) {
-                if (Backend.selectedManifest.manifestID.equals(Backend.manifest_list.get(i))) {
-                    break;
-                }
-            }
 
             String sb = "Manifest: " + Backend.selectedManifest.manifestID +
                     "\n\n\nTotal SSCCs: " + Backend.selectedManifest.ssccList.size() +
@@ -242,12 +228,9 @@ public class MenuActivity extends AppCompatActivity implements syncCallback {
                     data_out.append(Backend.exportJson());
                     data_out.append("\n");
                     data_out.flush();
-                    Log.d("DATA_OUT", "\nSent bytes: " + Backend.exportJson().length());
+                    Log.d("DATA_OUT", "Sent");
 
-                    if (Backend.importJson(data)) {
-                        Log.d("SYNC", "DOING UPDATE");
-                        Backend.exportJsonFile();
-                    }
+                    Backend.parseReceivedJson(data);
 
                     c.callback();
 

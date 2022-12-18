@@ -46,21 +46,27 @@ public class SSCCViewActivity extends AppCompatActivity {
 
 
         backButton.setOnClickListener(v -> doClose());
-        switchMissing.setOnClickListener(v -> doSwitchToggle());
+        switchMissing.setOnClickListener(v -> doSwitchToggle(sscc.ssccID));
 
         ssccView.setText(sb.toString());
 
     }
 
-    private void doSwitchToggle() {
-        if (!switchMissing.isChecked()) {
-            sscc.dilStatus = "";
-        } else {
-            sscc.dilStatus = "missing";
+    private void doSwitchToggle(String ssccID) {
+        for (int i = 0; i < Backend.selectedManifest.ssccList.size(); i++) {
+            if (ssccID.equals(Backend.selectedManifest.ssccList.get(i).ssccID)) {
+                if (switchMissing.isChecked()) {
+                    Backend.selectedManifest.ssccList.get(i).dilStatus = "missing";
+                } else {
+                    Backend.selectedManifest.ssccList.get(i).dilStatus = "";
+                }
+
+            }
         }
     }
 
     private void doClose() {
+        Backend.saveData(getApplicationContext());
         this.finish();
     }
 }
