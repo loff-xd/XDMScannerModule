@@ -9,8 +9,8 @@ android {
         applicationId "com.loff.xdmscannermodule"
         minSdk 28
         targetSdk 33
-        versionCode 1201
-        versionName "1.2.0.1"
+        versionCode 1202
+        versionName "1.2.0.2"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

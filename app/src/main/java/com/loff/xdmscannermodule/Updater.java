@@ -25,7 +25,7 @@ import java.nio.channels.ReadableByteChannel;
 @SuppressWarnings("deprecation")
 public class Updater {
 
-    static int version = 1201;  // TODO APPLICATION VERSION
+    static int version = 1202;  // TODO APPLICATION VERSION
     String dl_url = "";
     String changelog = "";
 
