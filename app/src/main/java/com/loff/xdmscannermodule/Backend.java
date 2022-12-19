@@ -182,6 +182,13 @@ public class Backend {
                     newManifest.ssccList.add(newSSCC);
 
                 }
+
+                newManifest.ssccList.sort((sscc, t1) -> {
+                    int ssccLF = Integer.parseInt(sscc.ssccID.substring(sscc.ssccID.length() - 4));
+                    int t1LF = Integer.parseInt(t1.ssccID.substring(t1.ssccID.length() - 4));
+                    return ssccLF - t1LF;
+                });
+
                 newManifests.add(newManifest);
             }
 
@@ -197,6 +204,8 @@ public class Backend {
             }
 
             selectedManifest = manifests.get(manifests.size() - 1);
+
+
 
         } catch (Exception e) {
             e.printStackTrace();
